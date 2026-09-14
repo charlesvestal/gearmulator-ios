@@ -3,7 +3,7 @@
 # Build JE-8086 for iOS (AUv3 + Standalone host app; the .appex is embedded).
 #
 #   scripts/build_ios.sh                                  # simulator, no signing
-#   DEVELOPMENT_TEAM=J4722B5MJW scripts/build_ios.sh device
+#   DEVELOPMENT_TEAM=<YOUR_TEAM_ID> scripts/build_ios.sh device
 #
 # The ESP cores run INTERPRETED here: iOS will not map an executable page, so
 # the asmjit emitter is compiled out (gearmulator_JE_NO_JIT, on by default for
@@ -89,9 +89,21 @@ ROMS="${ROMS:-roms-ios/je8086}"
 APP="$OUT/Standalone/JE8086.app"
 if compgen -G "$ROMS/*.mid" > /dev/null; then
   for bundle in "$OUT/AUv3/JE8086.appex" "$APP" "$APP/PlugIns/JE8086.appex"; do
-    [[ -d "$bundle" ]] && cp "$ROMS"/*.mid "$bundle/"
+    [[ -d "$bundle" ]] || continue
+    cp "$ROMS"/*.mid "$bundle/"
+    # Ship the boot snapshot if one is staged. Neither this script nor its
+    # schwung-je8086 predecessor copied it, and JE-8086 boots fine on an iPad
+    # without it -- so this is a possible startup saving, not a fix. The docs
+    # put a scratch boot at 30-60s against ~0.5s from a snapshot, but that gap
+    # has not been observed here and the copy is harmless either way.
+    compgen -G "$ROMS/*.snap" > /dev/null && cp "$ROMS"/*.snap "$bundle/"
   done
-  echo "==> ROMs copied into the app, the embedded .appex and the standalone .appex"
+  if compgen -G "$ROMS/*.snap" > /dev/null; then
+    echo "==> ROMs + boot snapshot copied into the app, the embedded .appex and the standalone .appex"
+  else
+    echo "==> ROMs copied into the app, the embedded .appex and the standalone .appex"
+    echo "==> (no *.snap in $ROMS -- the firmware boots from scratch)"
+  fi
 
   if [[ "$MODE" == "device" ]]; then
     # "Apple Development" alone is ambiguous when the keychain holds certs for

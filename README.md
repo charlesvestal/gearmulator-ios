@@ -1,11 +1,22 @@
 # gearmulator-ios
 
-iOS build harness for [gearmulator](https://github.com/dsp56300/gearmulator) —
-The Usual Suspects' DSP56300 and H8S synth emulators — producing a **Standalone
-app and an AUv3** for iPhone/iPad.
+An **unofficial** iOS build harness for
+[gearmulator](https://github.com/dsp56300/gearmulator) — The Usual Suspects'
+DSP56300 and H8S synth emulators — producing a **Standalone app and an AUv3**
+for iPad.
 
-The engine itself is not here. `libs/gearmulator` is a submodule of the fork
-carrying the iOS fixes; this repo is the build, packaging and asset side.
+Not affiliated with or endorsed by The Usual Suspects. All credit for the
+emulators belongs to them; this repo only builds and packages their work for a
+platform they do not currently target.
+
+The engine itself is not here. `libs/gearmulator` is a submodule of a fork
+carrying the iOS-specific fixes (AUv3 bus layout, the realtime thread policy,
+editor sizing, factory bank loading, application icons); this repo is the build,
+packaging and asset side. Those fixes are candidates for upstreaming rather than
+a permanent divergence.
+
+**Status: personal/experimental.** It runs on an M-series iPad and is not a
+product. See Known issues below before investing time in it.
 
 | Product | Hardware |
 |---|---|
@@ -29,7 +40,13 @@ the AUv3 a host loads is the one embedded in the app's `PlugIns/`.
 
 ## ROMs and factory banks
 
-Not distributable, so nothing here ships them. Drop the files a synth needs into
+**No ROMs, firmware or factory banks are included, and none will be.** These are
+copyrighted by their respective manufacturers. You are expected to own the
+hardware and to dump or otherwise lawfully obtain its firmware yourself; what is
+lawful is your responsibility and varies by jurisdiction. Do not open issues
+asking where to get them.
+
+Nothing here ships them. Drop the files a synth needs into
 `roms-ios/<synth>/` (gitignored) and they are copied into the app, the embedded
 .appex and the standalone .appex, which are then re-signed — adding files to a
 signed bundle invalidates its signature, so the re-sign is inside-out.
@@ -69,3 +86,8 @@ which devices these actually run on.
 Extracted from the `ios-auv3` branch of `schwung-je8086`, which had accumulated
 this work alongside unrelated JP-8000 changes. Started fresh rather than carrying
 that entangled history.
+
+## Licence
+
+GPLv3, the same licence as gearmulator, whose source this builds and links.
+See `LICENSE.md`.

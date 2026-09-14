@@ -4,7 +4,7 @@
 # .appex is embedded in the app).
 #
 #   scripts/build_ios_dsp56k.sh osirus                          # simulator
-#   DEVELOPMENT_TEAM=J4722B5MJW scripts/build_ios_dsp56k.sh osirus device
+#   DEVELOPMENT_TEAM=<YOUR_TEAM_ID> scripts/build_ios_dsp56k.sh osirus device
 #
 # THE JIT IS COMPILED OUT (-DDSP56K_FORCE_INTERPRETER=1). iOS will not map an
 # executable page to a non-entitled process, so asmjit cannot be used at all --
