@@ -1,4 +1,4 @@
 [submodule "libs/gearmulator"]
 	path = libs/gearmulator
 	url = https://github.com/charlesvestal/gearmulator.git
-	branch = merge-upstream-88emu
+	branch = integration/ios-move
