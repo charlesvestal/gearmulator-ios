@@ -1,0 +1,6 @@
+# ROMs and factory banks are never committed. Drop them in roms-ios/<synth>/
+# and the build scripts copy them into the bundles. See the README.
+roms-ios/
+
+# out-of-tree CMake/Xcode build dirs, one per synth+sdk
+build-ios*/
