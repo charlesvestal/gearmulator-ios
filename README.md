@@ -51,14 +51,6 @@ Nothing here ships them. Drop the files a synth needs into
 .appex and the standalone .appex, which are then re-signed — adding files to a
 signed bundle invalidates its signature, so the re-sign is inside-out.
 
-Loaders match on extension (`.bin`, `.mid`, `.syx`) and filter by SIZE, so a
-folder can hold a firmware ROM and a factory bank together without either being
-mistaken for the other.
-
-Waldorf's Microwave factory bank is a raw 64 KB image with no sysex in it at all
-and cannot simply be renamed — run `scripts/mw2_bank_to_sysex.py` to wrap its 256
-records into XT Single dumps first.
-
 ## The JIT is compiled out
 
 iOS will not map an executable page to a non-entitled process, so asmjit cannot
@@ -67,25 +59,6 @@ be used at all; every DSP56300 instruction runs through the interpreter
 at runtime. `pgo/` holds profiles that buy back part of the cost; see
 `pgo/README.md`, and `docs/IOS_AUV3.md` for measured per-synth throughput and
 which devices these actually run on.
-
-## Known issues
-
-- **AUv3 icons do not appear in hosts** (AUM, GarageBand) although the home
-  screen icons are correct. The bundles were compared against a working AUv3 on
-  the same device and match on packaging, asset catalogs, plist keys, signing,
-  install path and component version. Unexplained; there is no public API for
-  how a host resolves an audio unit's icon.
-- **JE-8086 is unvalidated.** It builds, boots its ROMs and runs, but reports
-  `limited requested latency ... audio will be out of sync` and its output has
-  never been checked.
-- The realtime-window fix is confirmed on NodalRed2x only; the other synths
-  carry it but have not been re-tested under host UI load.
-
-## History
-
-Extracted from the `ios-auv3` branch of `schwung-je8086`, which had accumulated
-this work alongside unrelated JP-8000 changes. Started fresh rather than carrying
-that entangled history.
 
 ## Licence
 
