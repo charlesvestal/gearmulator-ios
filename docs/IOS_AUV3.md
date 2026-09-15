@@ -157,9 +157,16 @@ Measured on an iPhone 15 Pro (A17 Pro), 2026-09-15:
 
 | synth | DSPs | result |
 |---|---|---|
-| JE-8086 | H8S + ESP | runs |
-| Osirus | 1 | runs |
-| NodalRed2x | 2 | loads, no sound |
+| JE-8086 | H8S + ESP | plays |
+| Osirus | 1 | plays, breaks up under load |
+| OsTIrus | 1 | plays; heaviest Virus, expect to underclock |
+| Vavra | 1 | plays |
+| Xenia | 3 | plays, breaks up under load |
+| NodalRed2x | 2 | loads, no sound at all |
+
+DSP count is a rough guide and no more: Xenia emulates three and still makes
+sound while NodalRed2x emulates two and makes none, so what decides it is the
+total emulated work a synth demands, not how it is divided across DSPs.
 
 NodalRed2x is not marginal, it is roughly 2x short: its two DSPs each need about
 95 MIPS and get 36-48, and the ESAI transmits nothing (122 underruns in one

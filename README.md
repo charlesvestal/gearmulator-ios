@@ -36,14 +36,24 @@ DSPs a synth emulates**, not how fast the chip is.
 | | iPad Pro M5 | iPhone 15 Pro (A17 Pro) |
 |---|---|---|
 | | 3-4P + 6E cores | 2P + 4E cores |
-| Osirus (1 DSP) | works | **works** |
-| OsTIrus (1 DSP) | works | works |
-| Vavra (1 DSP) | works | untested |
-| Xenia (3 DSPs) | works | untested |
-| NodalRed2x (2 DSPs) | works | **no sound** |
-| JE-8086 (H8S + ESP) | works | **works** |
+| Osirus (1 DSP) | works | plays, **breaks up** |
+| OsTIrus (1 DSP) | works | plays -- heaviest of the Viruses, expect to underclock |
+| Vavra (1 DSP) | works | plays |
+| Xenia (3 DSPs) | works | plays, **breaks up** |
+| NodalRed2x (2 DSPs) | works | **no sound at all** |
+| JE-8086 (H8S + ESP) | works | plays |
 
-Measured 2026-09-15. NodalRed2x is not marginal on the phone, it is about 2x
+Measured 2026-09-15, every row tested rather than inferred. On the phone most of
+these PLAY but break up under load; they are usable rather than clean, and
+underclocking is what buys the margin back. DSP count is a rough guide and no
+more -- Xenia emulates three and still makes sound, so what matters is the total
+emulated work a synth demands, not how it is divided.
+
+OsTIrus is the tightest of the Viruses -- the TI is a heavier model than the ABC
+(1.60x against Osirus's 2.06x on the M5) -- so it is the most likely to need a
+step down, and it has the control.
+
+NodalRed2x is the one genuine failure: not marginal, about 2x
 short: each of its two DSPs wants ~95 MIPS and gets 36-48, so the ESAI transmits
 nothing rather than glitching. Underclocking does not help it -- on that device
 the ESAI clock sets the output rate, so a lower clock means MORE emulated work
