@@ -67,7 +67,9 @@ else
 fi
 
 COMMON_ARGS=(
-  -DCMAKE_CXX_FLAGS="$PGO_FLAGS"
+  # EXTRA_CXX_FLAGS lets a caller add defines without editing this script, e.g.
+  # EXTRA_CXX_FLAGS=-DTUS_AUDIO_HEALTH=1 to compile in the audio-path health log.
+  -DCMAKE_CXX_FLAGS="$PGO_FLAGS ${EXTRA_CXX_FLAGS:-}"
   -S libs/gearmulator
   -B "$BUILD_DIR"
   -G Xcode

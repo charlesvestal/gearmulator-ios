@@ -144,30 +144,63 @@ removed or gated before release.
 
 ## Which devices this runs on
 
-**M-series iPads. Not iPhones, and not A-series iPads.**
+**Every M-series iPad. On iPhones and A-series iPads it depends on the synth**,
+and the deciding factor is how many DSPs the synth emulates, not the chip.
 
 | device class | chip | P-cores | verdict |
 |---|---|---|---|
 | iPad Pro / Air | M1, M2 | 4P + 4E | should work (inferred) |
 | iPad Pro | M4, M5 | 3-4P + 6E | **works -- measured on M5** |
-| iPhone, ANY model | A-series | 2P + 4E | **underruns -- measured on A17 Pro** |
-| iPad (base), iPad mini | A-series | 2P + 4E | won't: same topology as the phone |
+| iPhone / iPad (base) / mini | A-series | 2P + 4E | **single-DSP synths and JE-8086 work; NodalRed2x does not** |
 
-Measured: an M5 iPad Pro runs two simultaneous instances at 98-99% clean. An
-iPhone 15 Pro underruns, and does so at TWO stages and at FOUR alike, so the
-stage count is not what stops it.
+Measured on an iPhone 15 Pro (A17 Pro), 2026-09-15:
+
+| synth | DSPs | result |
+|---|---|---|
+| JE-8086 | H8S + ESP | runs |
+| Osirus | 1 | runs |
+| NodalRed2x | 2 | loads, no sound |
+
+NodalRed2x is not marginal, it is roughly 2x short: its two DSPs each need about
+95 MIPS and get 36-48, and the ESAI transmits nothing (122 underruns in one
+30 s run) rather than glitching. Nothing tunes that away --
+
+  - underclocking makes it WORSE, not better. On this device the ESAI clock sets
+    the output rate, so a lower clock means more emulated work per second of
+    audio: 0.91x -> 0.44x at 50%. canModifyDspClock() returns false for the
+    NodalRed2x deliberately, and it is right to.
+  - fewer voices does not help: the DSP runs its full program regardless, which
+    is why it measures flat to 20 voices.
+  - both DSPs already run on their own threads.
+
+Underclocking IS the lever on the synths that support it -- a Virus goes from
+0.96x to 1.11x at 4 voices with one step down -- and it is reachable from the
+DSP/Audio settings page.
+
+**An earlier version of this section said "iPhone, ANY model -- underruns".**
+That was measured before the realtime constraint window was fixed (dsp56kBase,
+2026-09-14: every DSP worker ran with a 46.4 ms window from a hardcoded
+44100/2048, so protection arrived in one slab and left them exposed for tens of
+milliseconds at a time). JE-8086 and Osirus both run on the phone now. Keep the
+verdict per-synth; a blanket "no iPhone" is wrong and tells people not to bother
+with a device that runs most of these.
+
+Still unresolved on iPhone: Osirus and OsTIrus fall silent after the host has
+been backgrounded, with the audio path measurably healthy -- 2005 ms per 2 s of
+audio, zero starvations, zero carry drops -- so it is not a shortfall. The
+engine stops producing while everything around it keeps running. Reloading the
+plugin recovers it.
 
 Inferred: M1/M2 iPads should be fine. The interpreted engine measures 0.70x
 serial and 2.07x pipelined on an M1, which is the same CPU as the M1 iPad Pro.
 That is a same-family measurement rather than a spec-sheet guess, but it is
 still not a test on the hardware.
 
-**No future iPhone fixes this.** Every A-series chip from the A11 to the A18 Pro
-has exactly two performance cores; the topology has not moved in seven
-generations. The A17 Pro's P-cores are individually FASTER than an M1's and it
-still underruns, so this is not about per-core speed -- serial sits below real
-time, the only way up is spreading stages, and two performance cores caps how
-much of that can be recovered.
+**Core count is what caps the A-series, not per-core speed.** Every A-series
+chip from the A11 to the A18 Pro has exactly two performance cores; the topology
+has not moved in seven generations. The A17 Pro's P-cores are individually
+FASTER than an M1's, so a synth that needs two cores' worth of DSP does not fit
+however fast the chip gets.
 
 Do not read that as "the E-cores are useless": deriving the stage count from
 `hw.perflevel0.physicalcpu` to keep every stage on a P-core made the IPAD worse
