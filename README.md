@@ -15,8 +15,8 @@ editor sizing, factory bank loading, application icons); this repo is the build,
 packaging and asset side. Those fixes are candidates for upstreaming rather than
 a permanent divergence.
 
-**Status: personal/experimental.** It runs on an M-series iPad and is not a
-product. See Known issues below before investing time in it.
+**Status: personal/experimental**, not a product. See Compatibility below, and
+`docs/IOS_AUV3.md` for the measurements and the open problems.
 
 | Product | Hardware |
 |---|---|
@@ -26,6 +26,38 @@ product. See Known issues below before investing time in it.
 | Xenia | Waldorf Microwave II/XT |
 | NodalRed2x | Clavia Nord Lead/Rack 2x |
 | JE-8086 | Roland JP-8000 |
+
+## Compatibility
+
+The JIT cannot be used on iOS at all (see below), so everything runs through the
+interpreter and CPU is the binding constraint. What decides it is **how many
+DSPs a synth emulates**, not how fast the chip is.
+
+| | iPad Pro M5 | iPhone 15 Pro (A17 Pro) |
+|---|---|---|
+| | 3-4P + 6E cores | 2P + 4E cores |
+| Osirus (1 DSP) | works | **works** |
+| OsTIrus (1 DSP) | works | works |
+| Vavra (1 DSP) | works | untested |
+| Xenia (3 DSPs) | works | untested |
+| NodalRed2x (2 DSPs) | works | **no sound** |
+| JE-8086 (H8S + ESP) | works | **works** |
+
+Measured 2026-09-15. NodalRed2x is not marginal on the phone, it is about 2x
+short: each of its two DSPs wants ~95 MIPS and gets 36-48, so the ESAI transmits
+nothing rather than glitching. Underclocking does not help it -- on that device
+the ESAI clock sets the output rate, so a lower clock means MORE emulated work
+per second of audio (0.91x -> 0.44x at 50%), which is why the synth declines to
+offer the control.
+
+On the synths that do offer it, underclocking is the lever: one step down takes a
+Virus from 0.96x to 1.11x at 4 voices. It lives in the DSP/Audio settings page,
+reached by long-pressing the panel (touch has no right click) and enabling
+advanced options.
+
+Earlier notes here said no iPhone worked at all. That predated a fix to the
+realtime thread policy and is wrong; see `docs/IOS_AUV3.md` for the measurements
+and for what an M1/M2 iPad is expected to do.
 
 ## Build
 
