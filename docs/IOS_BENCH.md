@@ -112,11 +112,26 @@ rate", and it is the only thing that identified the MD/MM boot livelock
 
 ## Measured
 
-M5 iPad Pro, interpreted, arm64:
+M5 iPad Pro, interpreted, arm64, PGO:
 
 | synth | result |
 |---|---|
 | Machinedrum | 1.80-2.17x while executing; livelocks in boot -- see `MD_MM_IOS.md` |
+| Osirus (Virus C) | 0.431x at 4 voices -- but see the caveat below |
+
+**A synth that runs its DSPs on their own threads does not measure honestly
+here.** Osirus reads 0.431x on an M5 iPad and 0.949x running the same bench on
+an M1 desktop, which is backwards, and it contradicts the plugin being
+comfortable on that iPad. virusLib puts its DSP on a realtime-constrained
+thread (`computation=1333us, constraint=2666us`) sized for an audio callback;
+free-running in a bench with no callback to pace it, that budget caps
+throughput. Treat device figures for threaded synths as a floor until the
+bench either drives them through `synthLib::Plugin` or matches the plugin's
+thread policy.
+
+Machinedrum does not have this problem: `md::Hardware` advances its MCU and
+both DSPs on the calling thread and spawns nothing, which is why its figure is
+directly comparable to the desktop's.
 
 The DSP56300 interpreter sustains about **200M instructions/sec per DSP** on an
 M5, roughly twice what a 101.6 MHz DSP56303 demands, and about twice what an M1
