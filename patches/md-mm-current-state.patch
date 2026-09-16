@@ -1,4 +1,4 @@
-### Snapshot of md-interp-work/mdmm, Wed Sep 16 19:56:29 CEST 2026
+### Snapshot of md-interp-work/mdmm, Wed Sep 16 19:58:34 CEST 2026
 
 diff --git a/base.cmake b/base.cmake
 index 0a880954..23428f2d 100644
@@ -952,7 +952,7 @@ index ddf2aae3..99edbe2c 100644
 +		XCODE_ATTRIBUTE_INFOPLIST_KEY_UIApplicationSceneManifest_Generation NO)
 +endif()
 diff --git a/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp b/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
-index 5204dedf..e10daf5a 100644
+index 5204dedf..b56d6604 100644
 --- a/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
 +++ b/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
 @@ -4,6 +4,9 @@
@@ -965,7 +965,7 @@ index 5204dedf..e10daf5a 100644
  
  #include <algorithm>
  #include <cstdlib>
-@@ -25,12 +28,238 @@ namespace
+@@ -25,12 +28,245 @@ namespace
  		constexpr uint32_t blockSize = 128;
  		const uint32_t frameCount = md::g_samplerate * _seconds;
  		for(uint32_t frame = 0; frame < frameCount; frame += blockSize)
@@ -1034,6 +1034,13 @@ index 5204dedf..e10daf5a 100644
 +						}
 +					}
 +				}
++				// DIAGNOSTIC: inter-DSP ESSI link depth. The mixer's mainline consumes
++				// producer samples over this link; if its input ring is empty the
++				// mainline blocks and cannot reset the DMA0 fault counter.
++				std::cerr << "MD_LINK tick=" << tick
++					<< " mixerIn=" << _hardware.getDspMixer().getPeriph().getEssi0().getAudioInputs().size()
++					<< " producerIn=" << _hardware.getDspProducer().getPeriph().getEssi0().getAudioInputs().size()
++					<< '\n';
 +				std::cerr << "MD_DRAIN tick=" << tick
 +					<< " mixTotal=" << _hardware.getDspMixer().m_drainTotal
 +					<< " mixMax=" << _hardware.getDspMixer().m_drainMaxSingle
@@ -1204,7 +1211,7 @@ index 5204dedf..e10daf5a 100644
  		if(!_hardware.getUC().isPanelHandshakeComplete())
  			throw std::runtime_error(std::string(_phase) + ": panel handshake did not complete");
  		if(!_hardware.isFirmwareMidiReady())
-@@ -66,7 +295,8 @@ int main()
+@@ -66,7 +302,8 @@ int main()
  		require(fresh.isValid(), "fresh machine was invalid");
  		require(fresh.isFactoryFlashInitializationExpected(),
  			"fresh machine did not enter factory initialization");
