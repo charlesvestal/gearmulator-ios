@@ -800,3 +800,66 @@ Both are changes to shared transport code and must be validated against Osirus
 and the XT, which run on the same HDI08 and currently depend on its
 always-ready behaviour. Baselines: interpreter true default 3380 bytes, JIT
 26894, dsp56kTestRunner exit 0, and overflow counts at zero.
+
+## Session 3, part 8 — a lossless host queue removes the fault but does not boot
+
+Implemented `MD_HOST_BACKLOG=1` (mddsp.cpp/h, pumped from mdhardware.cpp): hold
+words the DSP has no room for in an mdLib-side queue and release them as HRX
+drains, instead of overwriting unconsumed words. Off by default.
+
+Result — the fault disappears:
+
+```
+MD_HOST_BACKLOG=1:  mixLost=0  prodLost=0  mixerPC=49b  producerPC=100096
+default:            mixLost=538            mixerPC=9da (error loop)
+```
+
+Both DSPs stay ALIVE. The mixer runs its own program instead of the 9da error
+loop, and the producer sits in its mainline. So eliminating the data loss does
+remove the DMA0 triple-fault. It still does not boot: the panel stalls at 3160.
+
+### Why it still fails: the pump rate is a knife edge
+
+The queue needs a release policy, and every policy tried is wrong in one
+direction or the other:
+
+```
+refill HRX to depth 2       -> machine FREEZES at tick 27. TRDY is defined as
+                               depth == 0, so a permanently topped-up HRX means
+                               the UC never sees clear-to-send and spins forever.
+refill only an empty HRX,
+  pumped on catch-up only   -> runs to tick 180, no fault, but the mixer ends
+                               parked at 9af waiting for HRDF: nothing refills
+                               HRX while the UC is busy elsewhere.
+same, pumped every
+  schedStep                 -> back to 9da. Words now arrive fast enough that the
+                               receive ISR thrashes and the mainline is starved
+                               again.
+```
+
+Too slow and the mixer waits in its ISR; too fast and its mainline never runs.
+There is no correct rate to pick from outside, because the real part does not
+pick one: the DSP asserts HREQ and the UC stalls until the DSP is ready. That
+back-pressure is the missing piece, and a host-side queue cannot synthesise it.
+
+This is useful negative evidence, not a fix. It does establish one thing firmly:
+**the data loss was a real and separate defect**, because removing it removes
+the 9da fault outright.
+
+### State left behind
+
+All of it is env-gated and OFF by default. Verified after the experiment:
+
+```
+interpreter, no env overrides:   3380 bytes   (unchanged baseline)
+JIT, no env overrides:          26894 / 22090  PASSES
+dsp56kTestRunner:                exit 0
+```
+
+### What remains, unchanged in substance
+
+Model HREQ back-pressure so the UC stalls in machine time when HRX is full, and
+give MD true 1-deep receive semantics rather than faking them over the 8192-word
+FIFO. Both touch shared HDI08 code used by Osirus and the XT, which currently
+rely on its always-ready behaviour, so they need their own validation. That is
+the next session's work; it is a design change, not a knob.
