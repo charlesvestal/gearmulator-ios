@@ -1,4 +1,4 @@
-### Snapshot of md-interp-work/mdmm, Wed Sep 16 20:36:43 CEST 2026
+### Snapshot of md-interp-work/mdmm, Wed Sep 16 20:38:25 CEST 2026
 
 diff --git a/base.cmake b/base.cmake
 index 0a880954..23428f2d 100644
@@ -86,7 +86,7 @@ index e5dffe6d..d450de65 100644
  		mdJucePlugin_VST3 mmJucePlugin_VST3
  		mdJucePlugin_AU mmJucePlugin_AU
 diff --git a/source/elektron/md/mdLib/mddsp.cpp b/source/elektron/md/mdLib/mddsp.cpp
-index 3cc8a7b4..13cd664b 100644
+index 3cc8a7b4..cf135e03 100644
 --- a/source/elektron/md/mdLib/mddsp.cpp
 +++ b/source/elektron/md/mdLib/mddsp.cpp
 @@ -1,4 +1,11 @@
@@ -499,11 +499,15 @@ index 3cc8a7b4..13cd664b 100644
  		hdiTransferDSPtoUC();
  	}
  
-@@ -403,8 +718,13 @@ namespace md
+@@ -403,8 +718,17 @@ namespace md
  		_isr = static_cast<uint8_t>((_isr & ~mc68k::Hdi08::Rxdf)
  			| (m_hdiUC.canReceiveData() ? 0 : mc68k::Hdi08::Rxdf));
  
 +		++m_isrReads;	// DIAGNOSTIC: does the firmware poll before writing?
++		// DIAGNOSTIC: WHERE is the ColdFire when it polls? It burns ~97k polls by
++		// tick 18 against the JIT's ~6k in identical emulated cycles, so it is
++		// sitting in a loop the JIT does not sit in.
++		++m_ucPollPc[m_hardware.getUC().getPC() & 0xffffff];
  		// Mirror the DSP's host flags HF2/HF3 into the UC-visible ISR.
  		const auto hf23 = hdi08().readControlRegister() & 0x18;	// HF2 (bit3), HF3 (bit4)
 +		// DIAGNOSTIC: the UC branches on these; if the mixer never raises them the
@@ -513,7 +517,7 @@ index 3cc8a7b4..13cd664b 100644
  		_isr &= ~0x18;
  		_isr |= static_cast<uint8_t>(hf23);
  
-@@ -448,8 +768,15 @@ namespace md
+@@ -448,8 +772,15 @@ namespace md
  		}
  
  		const bool hasTx = hdi08().hasTX();
@@ -530,18 +534,19 @@ index 3cc8a7b4..13cd664b 100644
  			m_hdiUC.writeRx(echo);
  			m_hardware.notifyHostPumpStateChanged();
 diff --git a/source/elektron/md/mdLib/mddsp.h b/source/elektron/md/mdLib/mddsp.h
-index c46ec22b..aab24890 100644
+index c46ec22b..0c53a1d2 100644
 --- a/source/elektron/md/mdLib/mddsp.h
 +++ b/source/elektron/md/mdLib/mddsp.h
-@@ -2,6 +2,7 @@
+@@ -2,6 +2,8 @@
  
  #include <atomic>
  #include <cstdint>
 +#include <deque>
++#include <map>
  #include <functional>
  #include <vector>
  
-@@ -11,6 +12,9 @@
+@@ -11,6 +13,9 @@
  #include "dsp56kEmu/memory.h"
  #include "dsp56kEmu/peripherals.h"
  #include "dsp56kEmu/dspBootCode.h"
@@ -551,7 +556,7 @@ index c46ec22b..aab24890 100644
  
  namespace mc68k
  {
-@@ -56,6 +60,11 @@ namespace md
+@@ -56,6 +61,11 @@ namespace md
  		dsp56k::Peripherals56303& getPeriph() { return m_periphX; }
  
  		bool     booted() const { return m_schedRunnable.load(std::memory_order_acquire); }
@@ -563,7 +568,7 @@ index c46ec22b..aab24890 100644
  		void onDspBootFinished();
  
  		// Continuously drain this DSP's HOTX into the UC-facing HI08 receive queue, bounded so the
-@@ -71,7 +80,14 @@ namespace md
+@@ -71,7 +81,14 @@ namespace md
  		void    onUCRxEmpty(bool _needMoreData);
  		void    hdiTransferUCtoDSP(uint32_t _word);
  		void    waitForHostCommandIdle();		// wait in emulated time until no host command is in flight
@@ -579,7 +584,7 @@ index c46ec22b..aab24890 100644
  		void    hdiSendIrqToDSP(uint8_t _irq);
  		void    dispatchHostCommandInterrupt(uint8_t _vba);
  		uint8_t hdiUcReadIsr(uint8_t _isr);
-@@ -91,6 +107,31 @@ namespace md
+@@ -91,6 +108,32 @@ namespace md
  		dsp56k::DspBoot                m_boot;
  
  		// Published once boot state is fully initialized; acquired by the scheduler.
@@ -601,6 +606,7 @@ index c46ec22b..aab24890 100644
 +		uint64_t m_dspToUcHadTx = 0;
 +		uint64_t m_dspToUcSent = 0;
 +		uint64_t m_dspToUcBlocked = 0;
++		std::map<uint32_t,uint64_t> m_ucPollPc;	// DIAGNOSTIC: UC PC at each ISR poll
 +		uint64_t m_drainDepth1 = 0;
 +		uint64_t m_isrReads = 0;
 +		uint64_t m_isrReadsAtLastWrite = 0;
@@ -1107,7 +1113,7 @@ index ddf2aae3..99edbe2c 100644
 +		XCODE_ATTRIBUTE_INFOPLIST_KEY_UIApplicationSceneManifest_Generation NO)
 +endif()
 diff --git a/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp b/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
-index 5204dedf..493d2bde 100644
+index 5204dedf..f4841491 100644
 --- a/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
 +++ b/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
 @@ -4,6 +4,9 @@
@@ -1120,7 +1126,7 @@ index 5204dedf..493d2bde 100644
  
  #include <algorithm>
  #include <cstdlib>
-@@ -25,12 +28,272 @@ namespace
+@@ -25,12 +28,282 @@ namespace
  		constexpr uint32_t blockSize = 128;
  		const uint32_t frameCount = md::g_samplerate * _seconds;
  		for(uint32_t frame = 0; frame < frameCount; frame += blockSize)
@@ -1194,7 +1200,17 @@ index 5204dedf..493d2bde 100644
 +				// mainline blocks and cannot reset the DMA0 fault counter.
 +				{
 +					auto& mdma = _hardware.getDspMixer().getPeriph().getDMA();
-+					std::cerr << "MD_TX tick=" << tick
++					if(tick == 18 || tick == 26)
++				{
++					std::vector<std::pair<uint64_t,uint32_t>> v;
++					for(const auto& e : _hardware.getDspMixer().m_ucPollPc)
++						v.emplace_back(e.second, e.first);
++					std::sort(v.rbegin(), v.rend());
++					for(size_t k=0; k<v.size() && k<8; ++k)
++						std::cerr << "MD_UCPOLL tick=" << tick << " pc=" << std::hex
++							<< v[k].second << std::dec << " n=" << v[k].first << '\n';
++				}
++				std::cerr << "MD_TX tick=" << tick
 +					<< " calls=" << _hardware.getDspMixer().m_dspToUcCalls
 +					<< " hadTx=" << _hardware.getDspMixer().m_dspToUcHadTx
 +					<< " sent=" << _hardware.getDspMixer().m_dspToUcSent
@@ -1393,7 +1409,7 @@ index 5204dedf..493d2bde 100644
  		if(!_hardware.getUC().isPanelHandshakeComplete())
  			throw std::runtime_error(std::string(_phase) + ": panel handshake did not complete");
  		if(!_hardware.isFirmwareMidiReady())
-@@ -66,7 +329,8 @@ int main()
+@@ -66,7 +339,8 @@ int main()
  		require(fresh.isValid(), "fresh machine was invalid");
  		require(fresh.isFactoryFlashInitializationExpected(),
  			"fresh machine did not enter factory initialization");
