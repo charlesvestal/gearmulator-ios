@@ -1,0 +1,1624 @@
+### Self-contained snapshot of the working tree at md-interp-work/mdmm
+### Generated Wed Sep 16 17:33:04 CEST 2026. Parent diff first, then the dsp56300 submodule.
+### Apply parent part at fork root; submodule part in source/dsp56300.
+
+diff --git a/base.cmake b/base.cmake
+index 0a880954..23428f2d 100644
+--- a/base.cmake
++++ b/base.cmake
+@@ -145,6 +145,14 @@ else()
+ 	add_definitions(/DRELEASE)
+ endif()
+ 
++# Xcode is a multi-configuration generator, so CMAKE_BUILD_TYPE alone does not
++# provide JUCE's required debug/release ABI marker to every static library.
++add_compile_definitions(
++	$<$<CONFIG:Debug>:DEBUG=1>
++	$<$<CONFIG:Debug>:_DEBUG=1>
++	$<$<NOT:$<CONFIG:Debug>>:NDEBUG=1>
++	$<$<NOT:$<CONFIG:Debug>>:_NDEBUG=1>)
++
+ # we need C++17
+ set(CMAKE_CXX_STANDARD 17)
+ set(CMAKE_CXX_STANDARD_REQUIRED True)
+diff --git a/source/3rdparty/lua/CMakeLists.txt b/source/3rdparty/lua/CMakeLists.txt
+index 34a85084..f3b1ef9e 100644
+--- a/source/3rdparty/lua/CMakeLists.txt
++++ b/source/3rdparty/lua/CMakeLists.txt
+@@ -16,6 +16,12 @@ set_source_files_properties(${LUA_SOURCES} PROPERTIES LANGUAGE CXX)
+ target_include_directories(lua PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+ 
+ if(UNIX)
+-	target_compile_definitions(lua PRIVATE LUA_USE_POSIX)
++	# iOS has no system() and no tmpnam(); Lua's iOS configuration selects
++	# the available POSIX APIs and disables os.execute.
++	if(IOS)
++		target_compile_definitions(lua PRIVATE LUA_USE_IOS)
++	else()
++		target_compile_definitions(lua PRIVATE LUA_USE_POSIX)
++	endif()
+ 	target_link_libraries(lua PRIVATE m)
+ endif()
+diff --git a/source/CMakeLists.txt b/source/CMakeLists.txt
+index 546c1c97..e5e46b96 100644
+--- a/source/CMakeLists.txt
++++ b/source/CMakeLists.txt
+@@ -40,7 +40,9 @@ add_subdirectory(baseLib)
+ add_subdirectory(synthLib)
+ add_subdirectory(libresample)
+ 
+-add_subdirectory(3rdparty)
++if(${CMAKE_PROJECT_NAME}_BUILD_JUCEPLUGIN)
++	add_subdirectory(3rdparty)
++endif()
+ 
+ include(macsetup.cmake)
+ include(skins.cmake)
+diff --git a/source/changelog.cmake b/source/changelog.cmake
+index 5cd53a47..36ccb03f 100644
+--- a/source/changelog.cmake
++++ b/source/changelog.cmake
+@@ -2,6 +2,15 @@ set(TUS_CHANGELOG_SOURCE ${CMAKE_SOURCE_DIR}/doc/changelog.txt)
+ set(TUS_CHANGELOG_OUT_DIR ${CMAKE_SOURCE_DIR}/doc/changelog_split)
+ set(TUS_CHANGELOG_DEPENDS_FILE ${CMAKE_SOURCE_DIR}/doc/changelog_split/changelog_Osirus.txt)
+ 
++# Cross-compiling (iOS): changelogGenerator is built for the target and cannot
++# run on the build host. The split changelogs are checked in, so use them as-is.
++if(CMAKE_CROSSCOMPILING)
++	add_custom_target(tus_genChangelogs)
++	macro(tus_registerChangelog targetName)
++	endmacro()
++	return()
++endif()
++
+ add_custom_command(
+     OUTPUT ${TUS_CHANGELOG_DEPENDS_FILE}
+     COMMAND $<TARGET_FILE:changelogGenerator>
+diff --git a/source/elektron/md/mdJucePlugin/CMakeLists.txt b/source/elektron/md/mdJucePlugin/CMakeLists.txt
+index e5dffe6d..d450de65 100644
+--- a/source/elektron/md/mdJucePlugin/CMakeLists.txt
++++ b/source/elektron/md/mdJucePlugin/CMakeLists.txt
+@@ -85,7 +85,7 @@ endforeach()
+ # JUCE can populate bundle resources after its first ad-hoc signing pass on
+ # macOS. Re-sign the completed VST3 and Standalone bundles so hosts and Finder
+ # do not reject their final on-disk contents.
+-if(APPLE)
++if(APPLE AND NOT IOS)
+ 	foreach(plugin_target
+ 		mdJucePlugin_VST3 mmJucePlugin_VST3
+ 		mdJucePlugin_AU mmJucePlugin_AU
+diff --git a/source/elektron/md/mdLib/mddsp.cpp b/source/elektron/md/mdLib/mddsp.cpp
+index 3cc8a7b4..1f16e837 100644
+--- a/source/elektron/md/mdLib/mddsp.cpp
++++ b/source/elektron/md/mdLib/mddsp.cpp
+@@ -1,5 +1,9 @@
+ #include "mddsp.h"
+ 
++#include <cstdio>
++#include <thread>
++#include <cstdlib>
++
+ #include "mdhardware.h"
+ #include "mdtransportpolicy.h"
+ 
+@@ -115,6 +119,11 @@ namespace md
+ 		config.maxInstructionsPerBlock = 32;
+ 		// Likewise return from hardware DO loops regularly to service peripherals.
+ 		config.maxDoIterations = 4;
++		// Diagnostic override: emulated behaviour must NOT depend on slice size.
++		if(const char* e = std::getenv("MD_MAX_DO_ITERATIONS"))
++			config.maxDoIterations = static_cast<uint32_t>(std::atoi(e));
++		if(const char* e = std::getenv("MD_MAX_INSTR_PER_BLOCK"))
++			config.maxInstructionsPerBlock = static_cast<uint32_t>(std::atoi(e));
+ #if defined(__APPLE__) && defined(__aarch64__)
+ 		// JIT blocks are first compiled synchronously by the audio thread. On Apple
+ 		// silicon, the optimizer's cold cost exceeds its measured steady-state gain.
+@@ -200,9 +209,28 @@ namespace md
+ 			hdiTransferUCtoDSP(_word);
+ 		});
+ 
+-		// There are no background DSP threads. Publish the completed boot state to
+-		// the deterministic scheduler that owns all subsequent execution.
++		// Publish the completed boot state to the scheduler.
+ 		m_schedRunnable.store(true, std::memory_order_release);
++
++		// Experimental threaded mode. The single-threaded design must advance a
++		// DSP inline on every host-port touch, and that inline advance cannot
++		// reproduce the JIT's timing under the interpreter: it runs the DSP up to
++		// 100k cycles past the machine clock per word (measured: 550 clamp hits,
++		// the mixer 15.7M cycles ahead), which desynchronises the ESSI link.
++		// Removing the inline advance without a thread simply deadlocks -- the
++		// word is never consumed. A thread is what every working synth here uses.
++		static const bool useThreads = []() {
++			const char* e = std::getenv("MD_DSP_THREADS");
++			return e && *e && *e != '0';
++		}();
++		if(useThreads && !m_thread)
++		{
++			char name[32];
++			std::snprintf(name, sizeof(name), "md-dsp%u", m_index);
++			m_thread.reset(new dsp56k::DSPThread(m_dsp, name));
++			std::fprintf(stderr, "MD_THREAD start dsp%u\n", m_index);
++			m_thread->setLogToStdout(false);
++		}
+ 	}
+ 
+ 	namespace
+@@ -261,6 +289,11 @@ namespace md
+ 	{
+ 		m_hardware.notifyHostPumpStateChanged();
+ 
++		// Only the inline execution below is unsafe when this DSP owns a thread;
++		// the state notification above must still happen.
++		if(threaded())
++			return;
++
+ 		if(_needMoreData)
+ 		{
+ 			// A blocking host read needs its peer to make progress on this single
+@@ -309,20 +342,80 @@ namespace md
+ 		// scheduler clamp. This preserves receive ordering without a wall-clock
+ 		// wait or an unbounded host-side FIFO.
+ 		const uint64_t startCycle = m_dsp.getCycles();
+-		const uint64_t clampStop = startCycle
+-			+ schedInlineClamp(m_hardware.getModel());
+-		while(hdi08().hasRXData() && m_dsp.getCycles() < clampStop)
+-			m_dsp.exec();
++		uint64_t clampStop = startCycle + schedInlineClamp(m_hardware.getModel());
++
++		// This clamp is relative to the DSP's OWN position and ignores the shared
++		// machine clock, so a DSP that does not drain promptly gets advanced up to
++		// 100k cycles per host word, repeatedly. Measured on MD boot: 550 clamp
++		// hits on the mixer, ~55M cycles, which is the drift that desynchronises
++		// the ESSI link (producer transmits while the mixer's receiver is still
++		// disabled; 73,702 frames dropped, ring jammed at 512/512).
++		//
++		// schedCatchUpDsp already refuses to advance a DSP that has reached its
++		// machine-clock deadline -- it reports "already at target" on 116,963 of
++		// 117,574 calls. Apply the same rule here: a pending word is drained by
++		// the normal scheduler path once the clock catches up, not by running
++		// this DSP into the future.
++		// Refusing to advance entirely deadlocks: the pending word never drains and
++		// the scheduler's normal path also declines (it sees the DSP at target), so
++		// the machine stops. Allow a small allowance past the clock -- enough to
++		// service the host-port read -- instead of the full 100k.
++		if(const uint64_t clockDeadline = m_hardware.schedDspClockDeadline(m_index))
++		{
++			static const uint64_t slack = []() -> uint64_t {
++				if(const char* e = std::getenv("MD_HDI08_SLACK")) return std::strtoull(e, nullptr, 10);
++				return 2048;
++			}();
++			const uint64_t ceiling = clockDeadline + slack;
++			if(ceiling < clampStop)
++				clampStop = ceiling > startCycle ? ceiling : startCycle + slack;
++		}
++		// Post-only mode: do not advance the DSP from the MCU's thread at all, the
++		// way every threaded synth in this tree does it (xtLib just posts the word
++		// and wakes the DSP's thread). Here there is no DSP thread, so the word is
++		// drained by the frame-paced scheduler instead. Tests whether inline
++		// advancement -- not its bound -- is what breaks the interpreter.
++		static const bool postOnly = []() {
++			const char* e = std::getenv("MD_HDI08_POST_ONLY");
++			return e && *e && *e != '0';
++		}();
++		// A threaded DSP consumes its own host words; advancing it from here would
++		// execute the same DSP on two threads at once.
++		if(!postOnly && !threaded())
++		{
++			while(hdi08().hasRXData() && m_dsp.getCycles() < clampStop)
++				m_dsp.exec();
++		}
+ #if MD_TRANSPORT_DIAGNOSTICS
+ 		m_hardware.recordInlineHdi08Run(m_index, startCycle, clampStop,
+ 			!hdi08().hasRXData());
+ #endif
+ 		hdi08().writeRX(&_word, 1);
++		if(((++m_hostWordCount) % 1000) == 0)
++			std::fprintf(stderr, "MD_HOSTWORDS dsp%u=%llu pc=%06x\n", m_index,
++				static_cast<unsigned long long>(m_hostWordCount),
++				static_cast<uint32_t>(m_dsp.getPC().var));
+ 		return;
+ 	}
+ 
+ 	void Dsp::waitForHostCommandIdle()
+ 	{
++		// Threaded: this ordering guarantee still has to hold -- a CVR write must
++		// not overtake a host command already in flight -- but the DSP's own
++		// thread is what clears the busy flag now, so WAIT for it rather than
++		// running the DSP here (which races that thread). Skipping the wait lets
++		// the loader's final jump command overtake an in-flight command, leaving
++		// the producer parked in its loader. xtLib does the same via ucYieldLoop.
++		if(threaded())
++		{
++			for(uint32_t spins = 0; spins < 2000000 && hdi08().hostCommandBusy(); ++spins)
++			{
++				if((spins & 0xff) == 0xff)
++					std::this_thread::yield();
++			}
++			return;
++		}
++
+ 		// A CVR write may not overtake a host command already in flight. Hold the current
+ 		// transaction in emulated time until RTI clears host-command-busy.
+ 		if(!hdi08().hostCommandBusy())
+@@ -354,8 +447,10 @@ namespace md
+ 	void Dsp::hdiSendIrqToDSP(const uint8_t _irq)
+ 	{
+ 		// Catch the DSP up to the UC's current machine time before the CVR is
+-		// dispatched, so HCP is raised at a defined point in DSP time.
+-		if(booted())
++		// dispatched, so HCP is raised at a defined point in DSP time. A threaded
++		// DSP catches itself up; the interrupt dispatch below must still happen --
++		// the bootstrap loader is driven by these host commands.
++		if(booted() && !threaded())
+ 			m_hardware.schedCatchUpDsp(m_index);
+ 		// Preserve Monomachine host-command ordering. Data words precede the next
+ 		// command, so drain the receive path before dispatching that command. Run the DSP
+@@ -388,6 +483,21 @@ namespace md
+ 
+ 		dispatchHostCommandInterrupt(_irq);
+ 
++		// Threaded: the single-threaded path guaranteed the command was consumed by
++		// running the DSP inline right here. With the DSP on its own thread we must
++		// instead wait for it to take the interrupt, exactly as xtLib does
++		// (ucYieldLoop on hasPendingInterrupts). Without this the ColdFire races
++		// ahead and the bootstrap loader misses commands, leaving the producer in
++		// its error loop. Bounded so a wedged DSP cannot hang the audio thread.
++		if(threaded())
++		{
++			for(uint32_t spins = 0; spins < 200000 && dsp().hasPendingInterrupts(); ++spins)
++			{
++				if((spins & 0x3ff) == 0x3ff)
++					std::this_thread::yield();
++			}
++		}
++
+ 		hdiTransferDSPtoUC();
+ 	}
+ 
+diff --git a/source/elektron/md/mdLib/mddsp.h b/source/elektron/md/mdLib/mddsp.h
+index c46ec22b..f6d54752 100644
+--- a/source/elektron/md/mdLib/mddsp.h
++++ b/source/elektron/md/mdLib/mddsp.h
+@@ -11,6 +11,9 @@
+ #include "dsp56kEmu/memory.h"
+ #include "dsp56kEmu/peripherals.h"
+ #include "dsp56kEmu/dspBootCode.h"
++#include "dsp56kEmu/dspthread.h"
++
++#include <memory>
+ 
+ namespace mc68k
+ {
+@@ -56,6 +59,11 @@ namespace md
+ 		dsp56k::Peripherals56303& getPeriph() { return m_periphX; }
+ 
+ 		bool     booted() const { return m_schedRunnable.load(std::memory_order_acquire); }
++
++		// Experimental: run this DSP on its own thread, the way every other
++		// DSP56300 synth in this tree does (see xtLib). The deterministic
++		// interleave scheduler must then NOT advance it as well.
++		bool     threaded() const { return m_thread != nullptr; }
+ 		void onDspBootFinished();
+ 
+ 		// Continuously drain this DSP's HOTX into the UC-facing HI08 receive queue, bounded so the
+@@ -91,6 +99,8 @@ namespace md
+ 		dsp56k::DspBoot                m_boot;
+ 
+ 		// Published once boot state is fully initialized; acquired by the scheduler.
++		std::unique_ptr<dsp56k::DSPThread> m_thread;
++		uint64_t m_hostWordCount = 0;
+ 		std::atomic<bool> m_schedRunnable{false};
+ 
+ 		uint64_t m_mmHostTxCycle = 0;
+diff --git a/source/elektron/md/mdLib/mdhardware.cpp b/source/elektron/md/mdLib/mdhardware.cpp
+index c19c7790..bad949dd 100644
+--- a/source/elektron/md/mdLib/mdhardware.cpp
++++ b/source/elektron/md/mdLib/mdhardware.cpp
+@@ -7,6 +7,7 @@
+ 
+ #include <algorithm>
+ #include <chrono>
++#include <thread>
+ #include <cmath>
+ #include <cstdint>
+ #include <cstdio>
+@@ -581,6 +582,33 @@ namespace md
+ 		m_uc.reset();
+ 		m_uc.exec();	// prefetch warm-up (retires nothing; matches the synchronous harness)
+ 
++#if MD_TRANSPORT_DIAGNOSTICS
++		m_progressMonitor = std::thread([this]
++		{
++			uint64_t previousMixer = 0;
++			uint64_t previousProducer = 0;
++			while(!m_progressMonitorStop.load(std::memory_order_acquire))
++			{
++				std::this_thread::sleep_for(std::chrono::seconds(2));
++				const auto mixer = m_dspMixer.dsp().getInstructionCounter();
++				const auto producer = m_dspProducer.dsp().getInstructionCounter();
++				std::fprintf(stderr,
++					"MD_PROGRESS mixer=%llu (+%llu) cycles=%llu producer=%llu (+%llu) cycles=%llu audio=%d panel=%d midi=%d pixels=%u\n",
++					static_cast<unsigned long long>(mixer),
++					static_cast<unsigned long long>(mixer - previousMixer),
++					static_cast<unsigned long long>(m_dspMixer.dsp().getCycles()),
++					static_cast<unsigned long long>(producer),
++					static_cast<unsigned long long>(producer - previousProducer),
++					static_cast<unsigned long long>(m_dspProducer.dsp().getCycles()),
++					isAudioReady() ? 1 : 0,
++					m_uc.isPanelHandshakeComplete() ? 1 : 0,
++					m_uc.isMidiReceiveReady() ? 1 : 0,
++					m_frontPanel.countLitPixels());
++				previousMixer = mixer;
++				previousProducer = producer;
++			}
++		});
++#endif
+ 	}
+ 
+ 	void Hardware::setFrontPanelPublisher(
+@@ -602,6 +630,11 @@ namespace md
+ 
+ 	Hardware::~Hardware()
+ 	{
++#if MD_TRANSPORT_DIAGNOSTICS
++		m_progressMonitorStop.store(true, std::memory_order_release);
++		if(m_progressMonitor.joinable())
++			m_progressMonitor.join();
++#endif
+ 		m_uc.setMidiTransmitTap({});
+ 	}
+ 
+@@ -1153,6 +1186,16 @@ namespace md
+ 			std::fill_n(output.data(), _frames, dsp56k::TWord(0));
+ 
+ 		m_schedHostAudioActive = true;
++		{
++			// Short critical section only: never hold this across advance().
++			std::lock_guard<std::mutex> hostAudioLock(m_hostAudioMutex);
++			for(const auto& f : m_pendingCodecFrames)
++			{
++				if(m_schedHostAudio.push(f))
++					m_schedHostAudioOverflow.fetch_add(1, std::memory_order_relaxed);
++			}
++			m_pendingCodecFrames.clear();
++		}
+ 		const auto trimmed = renderHostAudio(m_schedHostAudio, m_audioOutputs, _frames,
+ 			[this](const uint32_t _chunk)
+ 			{
+@@ -1242,13 +1285,10 @@ namespace md
+ 
+ 			if(m_schedHostAudioActive)
+ 			{
+-				const bool dropped = m_schedHostAudio.emplace(
+-					[&frame](RealtimeHostAudioQueue::Frame& _hostFrame)
+-				{
+-					mapCodecOutputFrame(_hostFrame, frame);
+-				});
+-				if(dropped)
+-					m_schedHostAudioOverflow.fetch_add(1, std::memory_order_relaxed);
++				RealtimeHostAudioQueue::Frame hostFrame{};
++				mapCodecOutputFrame(hostFrame, frame);
++				std::lock_guard<std::mutex> hostAudioLock(m_hostAudioMutex);
++				m_pendingCodecFrames.push_back(hostFrame);
+ 			}
+ 		}
+ 	}
+@@ -1426,7 +1466,14 @@ namespace md
+ 			score.maximumRequestedCycles = std::max(
+ 				score.maximumRequestedCycles, diagnosticRequested);
+ #endif
+-			if(m_schedBoundedJit)
++			if(d.threaded())
++			{
++				// Its own thread owns execution. Yield so this loop makes progress
++				// as that thread advances the DSP, rather than executing it here
++				// (a race) or spinning (the loop would never terminate).
++				std::this_thread::yield();
++			}
++			else if(m_schedBoundedJit)
+ 				d.dsp().execUntilCycles(stopCyc);
+ 			else
+ 			{
+@@ -1450,8 +1497,6 @@ namespace md
+ 				schedDrainCodecOutput();			// keep the mixer ESSI1 output ring shallow
+ 		}
+ 
+-
+-
+ 		return true;
+ 	}
+ 
+@@ -1468,6 +1513,17 @@ namespace md
+ 			m_schedDspOriginUcCycles[index], _dspCycle - m_schedDspOriginCycles[index]);
+ 	}
+ 
++	uint64_t Hardware::schedDspClockDeadline(const uint32_t _dspIndex) const noexcept
++	{
++		const uint32_t i = _dspIndex & 1;
++		if(!m_schedDspOriginLatched[i])
++			return 0;
++		if(m_schedUcCyclesDone <= m_schedDspOriginUcCycles[i])
++			return 0;
++		return dspCatchupDeadline<g_ucClockHz, g_dsp1CyclesPerEsaiFrame * g_samplerate>(
++			m_schedDspOriginCycles[i], m_schedUcCyclesDone - m_schedDspOriginUcCycles[i]);
++	}
++
+ 	void Hardware::schedCatchUpDsp(const uint32_t _dspIndex)
+ 	{
+ 		// Run the target DSP inline up to the UC's current machine time
+@@ -1509,6 +1565,8 @@ namespace md
+ 		// MM flow control: a host-TX-backlogged DSP does not advance in catch-up either - the
+ 		// catch-up loops are how a DSP outruns the UC by thousands of words in the first place
+ 		// (see the schedStep backpressure comment). MD path untouched.
++		if(d.threaded())
++			return;					// its thread owns execution
+ 		const bool s_mmBp = isMonomachine();
+ 		while(d.dsp().getCycles() < targetCyc && d.dsp().getCycles() < clampStop
+ 			&& (!s_mmBp
+@@ -1554,6 +1612,12 @@ namespace md
+ 			return;
+ 		}
+ 		auto& d = (c == 0) ? m_dspMixer : m_dspProducer;
++		// Threaded: a frame must never be consumed before it was produced in DSP
++		// time, so this ordering is load-bearing -- gating it out leaves the mixer
++		// in ROM forever. The consumer's own thread does the advancing now, so
++		// WAIT for it to reach the producer's timestamp instead of running it here
++		// (which races that thread). Bounded so a wedged DSP cannot hang audio.
++		const bool waitForThread = d.threaded();
+ 		const double producerPos = schedDspFramePos(p);
+ 		const double deltaFrames = producerPos - m_schedDspOriginFrame[c];
+ 		if(deltaFrames <= 0.0)
+@@ -1579,10 +1643,21 @@ namespace md
+ 			score.maximumRequestedCycles = std::max(score.maximumRequestedCycles, requested););
+ 		m_schedInLinkDelivery = true;
+ 		const bool bpGate = isMonomachine();
+-		while(d.dsp().getCycles() < targetCyc && d.dsp().getCycles() < clampStop
+-			&& (!bpGate
+-				|| d.hostTxBacklog() <= policy.hostTransmitBackpressureThresholdWords))
+-			d.dsp().exec();
++		if(waitForThread)
++		{
++			for(uint32_t spins = 0; spins < 400000 && d.dsp().getCycles() < targetCyc; ++spins)
++			{
++				if((spins & 0xff) == 0xff)
++					std::this_thread::yield();
++			}
++		}
++		else
++		{
++			while(d.dsp().getCycles() < targetCyc && d.dsp().getCycles() < clampStop
++				&& (!bpGate
++					|| d.hostTxBacklog() <= policy.hostTransmitBackpressureThresholdWords))
++				d.dsp().exec();
++		}
+ 		m_schedInLinkDelivery = false;
+ 		MD_TRANSPORT_RECORD(const auto executed = d.dsp().getCycles() - startCyc;
+ 			score.executedCycles += executed;
+@@ -1598,6 +1673,11 @@ namespace md
+ 				++score.unexpectedShort;);
+ 	}
+ 
++	bool Hardware::dspsThreaded() const noexcept
++	{
++		return m_dspMixer.threaded() && m_dspProducer.threaded();
++	}
++
+ 	void Hardware::advance(const uint32_t _machineFrames)
+ 	{
+ 		m_schedFramesTotal += static_cast<double>(_machineFrames);
+diff --git a/source/elektron/md/mdLib/mdhardware.h b/source/elektron/md/mdLib/mdhardware.h
+index a513f77b..c6c020c3 100644
+--- a/source/elektron/md/mdLib/mdhardware.h
++++ b/source/elektron/md/mdLib/mdhardware.h
+@@ -6,6 +6,7 @@
+ #include <memory>
+ #include <mutex>
+ #include <string>
++#include <thread>
+ #include <vector>
+ 
+ #include "mddsp.h"
+@@ -189,6 +190,15 @@ namespace md
+ 		// Diagnostic snapshot. The caller must serialize with the machine thread,
+ 		// as Device does for its other control-plane observations.
+ 		TransportScorecard getTransportScorecard() noexcept;
++
++		// Machine-clock deadline for a DSP, in that DSP's cycles: how far it is
++		// entitled to run given how far the ColdFire has run. Returns 0 when the
++		// rate lock is not yet established. Used to stop the inline HI08 drain
++		// running a DSP past the shared clock.
++		uint64_t schedDspClockDeadline(uint32_t _dspIndex) const noexcept;
++
++		// True when both DSPs run on their own threads (see md::Dsp::threaded).
++		bool dspsThreaded() const noexcept;
+ 		void recordInlineHdi08Run(uint32_t _dspIndex, uint64_t _startCycle,
+ 			uint64_t _clampCycle, bool _workComplete) noexcept;
+ 		void recordMdLinkPurge(size_t _purgedFrames) noexcept;
+@@ -325,8 +335,26 @@ namespace md
+ 		// MM stall-purge decision, so it must never be shared by concurrently
+ 		// running Hardware instances (as it was when this lived as a static local).
+ 		std::array<uint64_t, 2> m_linkLastShallow{};
++
++		// Threaded mode only: drains the mixer's ESSI codec output continuously.
++		// It cannot live on the ColdFire thread -- that thread blocks in
++		// HDI08::writeRX waiting for a DSP to consume, while that DSP is blocked
++		// pushing audio into a full queue that only this drain empties.
++		// HostAudioQueue::emplace pops when full, so the producer mutates both ends
++		// and the queue is only safe under single ownership. The drain thread and
++		// the host callback both touch it, so serialise them.
++		std::mutex m_hostAudioMutex;
++		// Staging between the drain thread and the host callback. The lock is held
++		// only to move frames in or out -- never across advance()/writeRX, which
++		// block and would deadlock the drain.
++		std::vector<RealtimeHostAudioQueue::Frame> m_pendingCodecFrames;
++		std::thread m_codecDrain;
++		std::atomic<bool> m_codecDrainStop{false};
++
+ #if MD_TRANSPORT_DIAGNOSTICS
+ 		TransportScorecard m_transportScorecard;
++		std::atomic<bool> m_progressMonitorStop{false};
++		std::thread m_progressMonitor;
+ #endif
+ 
+ 		// Codec frames produced by the mixer.
+diff --git a/source/elektron/md/mdLibTest/CMakeLists.txt b/source/elektron/md/mdLibTest/CMakeLists.txt
+index ddf2aae3..99edbe2c 100644
+--- a/source/elektron/md/mdLibTest/CMakeLists.txt
++++ b/source/elektron/md/mdLibTest/CMakeLists.txt
+@@ -288,3 +288,31 @@ if(BUILD_TESTING)
+ 	set_tests_properties(mdTurboMidiUnitTest mdSdsTransferTest PROPERTIES FIXTURES_SETUP MdSysexTransport)
+ 	set_property(TEST mdLibTests mdAudioQueueTest APPEND PROPERTY FIXTURES_REQUIRED MdSysexTransport)
+ endif()
++
++add_executable(mdBench mdBench.cpp)
++target_link_libraries(mdBench PRIVATE mdLib)
++set_property(TARGET mdBench PROPERTY FOLDER "Elektron/test")
++
++# iOS: ship it as a signed .app with the firmware image inside, since that is
++# the only way a binary reaches a device.
++if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
++	# UIApplicationMain host, so the system does not SIGKILL a long run.
++	target_sources(mdBench PRIVATE iosmain.mm)
++	target_compile_definitions(mdBench PRIVATE BENCH_IOS_MACHINE="mm")
++	target_link_libraries(mdBench PRIVATE "-framework CoreFoundation" "-framework UIKit" "-framework Foundation")
++	set_source_files_properties(iosmain.mm PROPERTIES COMPILE_FLAGS "-fobjc-arc")
++	set(_mdRom "/private/tmp/claude-501/-Volumes-ExtFS-charlesvestal-github-schwung-parent-gearmulator-ios/571c5226-b835-41c3-b4e2-855d1821bc2f/scratchpad/roms/elektron_sps1-1uw_os1.63.bin" "/private/tmp/claude-501/-Volumes-ExtFS-charlesvestal-github-schwung-parent-gearmulator-ios/571c5226-b835-41c3-b4e2-855d1821bc2f/scratchpad/roms/elektron_sfx6-60_os1.32b.bin")
++	target_sources(mdBench PRIVATE ${_mdRom})
++	set_source_files_properties(${_mdRom} PROPERTIES
++		MACOSX_PACKAGE_LOCATION Resources HEADER_FILE_ONLY TRUE)
++	set_target_properties(mdBench PROPERTIES
++		MACOSX_BUNDLE TRUE
++		MACOSX_BUNDLE_GUI_IDENTIFIER com.charlesvestal.mdBench
++		XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
++		MACOSX_BUNDLE_BUNDLE_NAME mdBench
++		XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER com.charlesvestal.mdBench
++		XCODE_ATTRIBUTE_CODE_SIGN_STYLE Automatic
++		XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
++		XCODE_ATTRIBUTE_INFOPLIST_KEY_UILaunchScreen_Generation YES
++		XCODE_ATTRIBUTE_INFOPLIST_KEY_UIApplicationSceneManifest_Generation NO)
++endif()
+diff --git a/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp b/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
+index 5204dedf..422861bb 100644
+--- a/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
++++ b/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
+@@ -25,12 +25,198 @@ namespace
+ 		constexpr uint32_t blockSize = 128;
+ 		const uint32_t frameCount = md::g_samplerate * _seconds;
+ 		for(uint32_t frame = 0; frame < frameCount; frame += blockSize)
++		{
+ 			_hardware.advance(std::min(blockSize, frameCount - frame));
++			if(frame >= 2 * md::g_samplerate && frame < 3 * md::g_samplerate)
++				std::cerr << "MD_MIXER_SAMPLE frame=" << frame
++					<< " pc=" << std::hex << _hardware.getDspMixer().dsp().getPC().toWord()
++					<< std::dec << '\n';
++			constexpr uint32_t observationFrames = md::g_samplerate / 10;
++			if(frame / observationFrames != (frame + blockSize) / observationFrames)
++			{
++				const auto tick = (frame + blockSize) / observationFrames;
++				const auto panel = _hardware.getFrontPanelSnapshot();
++				if(const char* const snapTick = std::getenv("MD_SNAP_TICK"))
++			{
++				static bool snapped = false;
++				if(!snapped && tick == static_cast<uint32_t>(std::atoi(snapTick)))
++				{
++					snapped = true;
++					uint32_t n = 0;
++					for(uint32_t a = 0x100000; a < 0x120000; ++a)
++					{
++						const auto w = _hardware.getDspMixer().dsp().memory().get(dsp56k::MemArea_P, a);
++						if(!w) continue;
++						std::cerr << "MD_SNAP " << std::hex << a << '=' << w << std::dec << '\n';
++						++n;
++					}
++					std::cerr << "MD_SNAP_COUNT " << n << '\n';
++					// Does the same table live in X or Y memory instead? A sine
++					// table appearing in P only in the interpreter suggests the
++					// memory AREA is being mis-selected for these writes.
++					for(const auto area : {dsp56k::MemArea_X, dsp56k::MemArea_Y})
++					{
++						for(uint32_t a = 0x1300; a < 0x1400; ++a)
++						{
++							const auto w = _hardware.getDspMixer().dsp().memory().get(area, a);
++							if(!w) continue;
++							std::cerr << "MD_XY " << (area == dsp56k::MemArea_X ? 'X' : 'Y')
++								<< ' ' << std::hex << a << '=' << w << std::dec << '\n';
++						}
++					}
++				}
++			}
++			std::cerr << "MD_EARLY tick=" << tick
++					<< " bytes=" << panel.getByteCount()
++					<< " tiles=" << panel.getTileWriteCount()
++					<< " ucPC=" << std::hex << _hardware.getUC().getPC()
++					<< " mixerPC=" << _hardware.getDspMixer().dsp().getPC().toWord()
++					<< " producerPC=" << _hardware.getDspProducer().dsp().getPC().toWord()
++					<< std::dec
++					<< " mixerInstr=" << _hardware.getDspMixer().dsp().getInstructionCounter()
++					<< " producerInstr=" << _hardware.getDspProducer().dsp().getInstructionCounter()
++					<< " mixerCycles=" << _hardware.getDspMixer().dsp().getCycles()
++					<< " producerCycles=" << _hardware.getDspProducer().dsp().getCycles()
++					<< " ucCycles=" << _hardware.getUC().getCycles()
++					<< '\n';
++				if(tick >= 10 && tick <= 12)
++				{
++					auto& dsp = _hardware.getDspProducer().dsp();
++					const auto& regs = dsp.readRegs();
++					std::cerr << "MD_PRODUCER tick=" << tick << std::hex
++						<< " pc=" << dsp.getPC().toWord()
++						<< " sr=" << regs.sr.var << " omr=" << regs.omr.var
++						<< " lc=" << regs.lc.var << " la=" << regs.la.var
++						<< " r0=" << regs.r[0].var
++						<< " sc=" << regs.sc.var << " a=" << regs.a.var
++						<< " b=" << regs.b.var << std::dec << '\n';
++					for(uint32_t offset = 0; offset < 8; ++offset)
++						std::cerr << "MD_LOADED tick=" << tick << " pc=" << std::hex
++							<< (0x100000 + offset) << " op="
++							<< dsp.memory().get(dsp56k::MemArea_P, 0x100000 + offset)
++							<< std::dec << '\n';
++					dsp56k::Disassembler disassembler(dsp.opcodes());
++					for(uint32_t addr = 0x14ff00; addr < 0x14ff30; ++addr)
++					{
++						const auto opA = dsp.memory().get(dsp56k::MemArea_P, addr);
++						const auto opB = dsp.memory().get(dsp56k::MemArea_P, addr + 1);
++						std::string decoded;
++						disassembler.disassemble(decoded, opA, opB, regs.sr.var, regs.omr.var, addr);
++						std::cerr << "MD_PMEM tick=" << tick << " pc=" << std::hex << addr
++							<< " op=" << opA << " asm=" << decoded << std::dec << '\n';
++					}
++				}
++				if(tick >= 20 && tick <= 26)
++				{
++					auto& mixer = _hardware.getDspMixer();
++					const auto& regs = mixer.dsp().readRegs();
++					std::cerr << "MD_MIXER tick=" << tick << std::hex
++						<< " pc=" << mixer.dsp().getPC().toWord()
++						<< " sr=" << regs.sr.var << " omr=" << regs.omr.var
++						<< " lc=" << regs.lc.var << " la=" << regs.la.var
++						<< " r0=" << regs.r[0].var << std::dec
++						<< " rxDepth=" << mixer.hdi08().rxData().size() << '\n';
++					if(tick == 20)
++					{
++						dsp56k::Disassembler disassembler(mixer.dsp().opcodes());
++						for(uint32_t addr = 0x4bf; addr <= 0x4d2; ++addr)
++						{
++							const auto opA = mixer.dsp().memory().get(dsp56k::MemArea_P, addr);
++							const auto opB = mixer.dsp().memory().get(dsp56k::MemArea_P, addr + 1);
++							std::string decoded;
++							disassembler.disassemble(decoded, opA, opB, regs.sr.var, regs.omr.var, addr);
++							std::cerr << "MD_MIXER_CODE pc=" << std::hex << addr
++								<< " op=" << opA << " asm=" << decoded << std::dec << '\n';
++						}
++					}
++				}
++			}
++		}
+ 	}
+ 
+ 	void requireBootedPanel(md::Hardware& _hardware, const char* const _phase)
+ 	{
+ 		const auto panel = _hardware.getFrontPanelSnapshot();
++		auto& mixer = _hardware.getDspMixer().dsp();
++		auto& producer = _hardware.getDspProducer().dsp();
++		std::cerr << _phase << " state: ucPC=0x" << std::hex
++			<< _hardware.getUC().getPC() << std::dec
++			<< " ucCycles=" << _hardware.getUC().getCycles()
++			<< " mixerPC=0x" << std::hex << mixer.getPC().toWord()
++			<< " producerPC=0x" << producer.getPC().toWord() << std::dec
++			<< " mixerCycles=" << mixer.getCycles()
++			<< " producerCycles=" << producer.getCycles()
++			<< " bytes=" << panel.getByteCount()
++			<< " tiles=" << panel.getTileWriteCount()
++			<< " lit=" << panel.countLitPixels() << '\n';
++		std::cerr << "MD_FINAL producer r0=" << std::hex << producer.readRegs().r[0].var
++			<< " p100095=" << producer.memory().get(dsp56k::MemArea_P, 0x100095)
++			<< " p11c04a=" << producer.memory().get(dsp56k::MemArea_P, 0x11c04a)
++			<< std::dec << '\n';
++		for(const auto* const dsp : {&mixer, &producer})
++		{
++			uint64_t programHash = 1469598103934665603ULL;
++			uint32_t programNonzero = 0;
++			for(uint32_t addr = 0x100000; addr < 0x120000; ++addr)
++			{
++				const auto word = dsp->memory().get(dsp56k::MemArea_P, addr);
++				programHash = (programHash ^ word) * 1099511628211ULL;
++				programNonzero += word != 0;
++			}
++			std::cerr << "MD_PROGRAM dsp=" << (dsp == &mixer ? 0 : 1)
++				<< " hash=" << std::hex << programHash << std::dec
++				<< " nonzero=" << programNonzero << '\n';
++			// Which words are actually set, so JIT and interpreter can be diffed
++			// word by word rather than by hash.
++			if(dsp == &mixer)
++			{
++				uint32_t shown = 0;
++				for(uint32_t addr = 0x100000; addr < 0x120000 && shown < 600; ++addr)
++				{
++					const auto word = dsp->memory().get(dsp56k::MemArea_P, addr);
++					if(!word)
++						continue;
++					std::cerr << "MD_PWORD " << std::hex << addr << '=' << word << std::dec << '\n';
++					++shown;
++				}
++			}
++		}
++		for(auto* dsp : {&mixer, &producer})
++		{
++			dsp56k::Disassembler disassembler(dsp->opcodes());
++			const auto pc = dsp->getPC().toWord();
++			std::cerr << " dsp pc=0x" << std::hex << pc
++				<< " sr=0x" << static_cast<unsigned>(dsp->readRegs().sr.var)
++				<< " lc=0x" << static_cast<unsigned>(dsp->readRegs().lc.var)
++				<< " la=0x" << static_cast<unsigned>(dsp->readRegs().la.var)
++				<< " sc=0x" << static_cast<unsigned>(dsp->readRegs().sc.var)
++				<< " op=0x" << dsp->memory().get(dsp56k::MemArea_P, pc)
++				<< std::dec << '\n';
++			for(uint32_t offset = 0; offset < 4; ++offset)
++			{
++				const auto addr = pc + offset;
++				const auto a = dsp->memory().get(dsp56k::MemArea_P, addr);
++				const auto b = dsp->memory().get(dsp56k::MemArea_P, addr + 1);
++				std::string decoded;
++				disassembler.disassemble(decoded, a, b,
++					static_cast<unsigned>(dsp->readRegs().sr.var),
++					static_cast<unsigned>(dsp->readRegs().omr.var), addr);
++				std::cerr << "  0x" << std::hex << addr << ": "
++					<< decoded << std::dec << '\n';
++			}
++		}
++		const auto score = _hardware.getTransportScorecard();
++		if(score.enabled)
++		{
++			for(size_t i = 0; i < 2; ++i)
++				std::cerr << " link" << i << " tx=" << score.link[i].transmitFrames
++					<< " accepted=" << score.link[i].acceptedFrames
++					<< " empty=" << score.link[i].emptyReads
++					<< " depth=" << score.link[i].currentRingDepth
++					<< " bg=" << score.backgroundDsp[i].calls
++					<< " cf=" << score.coldFireToDsp[i].calls
++					<< " d2d=" << score.dspToDsp[i].calls << '\n';
++		}
+ 		if(!_hardware.getUC().isPanelHandshakeComplete())
+ 			throw std::runtime_error(std::string(_phase) + ": panel handshake did not complete");
+ 		if(!_hardware.isFirmwareMidiReady())
+@@ -66,7 +252,8 @@ int main()
+ 		require(fresh.isValid(), "fresh machine was invalid");
+ 		require(fresh.isFactoryFlashInitializationExpected(),
+ 			"fresh machine did not enter factory initialization");
+-		advance(fresh, 18);
++		advance(fresh, std::getenv("MD_TEST_SECONDS")
++			? static_cast<uint32_t>(std::atoi(std::getenv("MD_TEST_SECONDS"))) : 18);
+ 		requireBootedPanel(fresh, "fresh boot");
+ 		require(fresh.flashDirty(), "fresh boot did not initialize UW flash");
+ 		require(fresh.isFactoryFlashCacheReady(),
+diff --git a/source/elektron/md/optimization.cmake b/source/elektron/md/optimization.cmake
+index a2074f9b..f21d69dc 100644
+--- a/source/elektron/md/optimization.cmake
++++ b/source/elektron/md/optimization.cmake
+@@ -67,15 +67,22 @@ foreach(_mdmm_target IN LISTS _mdmm_optimization_targets)
+ 	target_compile_options(${_mdmm_target} PRIVATE "$<$<CONFIG:Release>:-flto=thin>")
+ 	# Static libraries propagate the matching options to their final consumer.
+ 	target_link_options(${_mdmm_target} INTERFACE "$<$<CONFIG:Release>:-flto=thin>")
+-	if(_mdmm_pgo_option)
++	# dsp56kBase contains platform-specific VM implementations (notably
++	# cowmemory.cpp), so a macOS-trained profile cannot safely qualify its iOS
++	# control-flow hash. ThinLTO still applies; PGO is limited to the portable
++	# emulation targets.
++	if(_mdmm_pgo_option AND NOT _mdmm_target STREQUAL "dsp56kBase")
+ 		target_compile_options(${_mdmm_target} PRIVATE "$<$<CONFIG:Release>:${_mdmm_pgo_option}>")
+ 		target_link_options(${_mdmm_target} INTERFACE "$<$<CONFIG:Release>:${_mdmm_pgo_option}>")
+ 		if(GEARMULATOR_MDMM_APPLE_PGO_MODE STREQUAL "use")
+ 			target_compile_definitions(${_mdmm_target} PRIVATE
+ 				"$<$<CONFIG:Release>:GEARMULATOR_MDMM_PGO_PROFILE_SHA256=\"${_mdmm_profile_sha256}\">")
+-			# A mismatched profile is not a validated optimization build.
++			# macOS and iOS take different compile-time branches in a few shared
++			# translation units. Apply matching function profiles and let those
++			# platform-specific functions fall back to ordinary optimization.
+ 			target_compile_options(${_mdmm_target} PRIVATE
+-				"$<$<CONFIG:Release>:-Werror=profile-instr-out-of-date>")
++				"$<$<CONFIG:Release>:-Wno-profile-instr-out-of-date>"
++				"$<$<CONFIG:Release>:-Wno-profile-instr-unprofiled>")
+ 		endif()
+ 	endif()
+ endforeach()
+diff --git a/source/juce.cmake b/source/juce.cmake
+index 05cb8a20..1f3429da 100644
+--- a/source/juce.cmake
++++ b/source/juce.cmake
+@@ -7,6 +7,15 @@ option(${CMAKE_PROJECT_NAME}_BUILD_JUCEPLUGIN_CLAP "Build CLAP version of Juce p
+ option(${CMAKE_PROJECT_NAME}_BUILD_JUCEPLUGIN_LV2 "Build LV2 version of Juce plugins" off)
+ option(${CMAKE_PROJECT_NAME}_BUILD_JUCEPLUGIN_AU "Build AU version of Juce plugins" on)
+ option(${CMAKE_PROJECT_NAME}_BUILD_JUCEPLUGIN_Standalone "Build Standalone version of Juce plugins" off)
++option(${CMAKE_PROJECT_NAME}_BUILD_JUCEPLUGIN_AUV3 "Build AUv3 version of Juce plugins" off)
++
++if(IOS)
++	set(${CMAKE_PROJECT_NAME}_BUILD_JUCEPLUGIN_AUV3 ON CACHE BOOL "" FORCE)
++	set(${CMAKE_PROJECT_NAME}_BUILD_JUCEPLUGIN_Standalone ON CACHE BOOL "" FORCE)
++	foreach(f VST2 VST3 CLAP LV2 AU)
++		set(${CMAKE_PROJECT_NAME}_BUILD_JUCEPLUGIN_${f} OFF CACHE BOOL "" FORCE)
++	endforeach()
++endif()
+ 
+ set(USE_CLAP ${${CMAKE_PROJECT_NAME}_BUILD_JUCEPLUGIN_CLAP})
+ set(USE_LV2 ${${CMAKE_PROJECT_NAME}_BUILD_JUCEPLUGIN_LV2})
+@@ -20,6 +29,12 @@ set(JUCE_CMAKE_DIR ${CMAKE_CURRENT_LIST_DIR})
+ set(juce_formats "")
+ set(plugin_formats "")
+ 
++if(IOS)
++	set(TUS_PRODUCTS_SUFFIX "-ios")
++else()
++	set(TUS_PRODUCTS_SUFFIX "")
++endif()
++
+ if(USE_AU AND APPLE)
+ 	set(juce_formats AU)
+ 	set(plugin_formats AU)
+@@ -54,6 +69,13 @@ if(USE_CLAP)
+ 	set_property(TARGET PluginFormat_CLAP PROPERTY FOLDER CustomTargets)
+ endif()
+ 
++if(${CMAKE_PROJECT_NAME}_BUILD_JUCEPLUGIN_AUV3)
++	list(APPEND juce_formats AUv3)
++	list(APPEND plugin_formats AUv3)
++	add_custom_target(PluginFormat_AUv3)
++	set_property(TARGET PluginFormat_AUv3 PROPERTY FOLDER CustomTargets)
++endif()
++
+ if(USE_Standalone)
+     list(APPEND juce_formats Standalone)
+     list(APPEND plugin_formats Standalone)
+@@ -124,7 +146,14 @@ endmacro()
+ 
+ macro(createJucePlugin targetName productName isSynth plugin4CC binaryDataProject synthLibProject)
+ 	string(REPLACE " " "" productNameIdentifier "${productName}")
++	set(TUS_IOS_PERMISSIONS "")
++	if(IOS)
++		set(TUS_IOS_PERMISSIONS
++			MICROPHONE_PERMISSION_ENABLED TRUE
++			MICROPHONE_PERMISSION_TEXT "This synthesizer does not record audio; iOS requires the declaration because the standalone host opens an audio input device.")
++	endif()
+ 	juce_add_plugin(${targetName}
++		${TUS_IOS_PERMISSIONS}
+ 		# VERSION ...                                     # Set this if the plugin version is different to the project version
+ 		# ICON_BIG ...                                    # ICON_* arguments specify a path to an image file to use as an icon for the Standalone
+ 		# ICON_SMALL ...
+@@ -140,7 +169,7 @@ macro(createJucePlugin targetName productName isSynth plugin4CC binaryDataProjec
+ 		MICROPHONE_PERMISSION_TEXT "Gearmulator uses audio input for processing external instruments."
+ 		PLUGIN_MANUFACTURER_CODE GmPv                     # A four-character manufacturer id with at least one upper-case character
+ 		PLUGIN_CODE ${plugin4CC}                          # A unique four-character plugin id with exactly one upper-case character
+-		PRODUCTS_FOLDER "${GEARMULATOR_JUCE_PRODUCTS_ROOT}/$<CONFIG>"
++		PRODUCTS_FOLDER "${GEARMULATOR_JUCE_PRODUCTS_ROOT}${TUS_PRODUCTS_SUFFIX}/$<CONFIG>"
+ 		                                                  # GarageBand 10.3 requires the first letter to be upper-case, and the remaining letters to be lower-case
+ 		FORMATS ${juce_formats}                           # The formats to build. Other valid formats are: AAX Unity VST AU AUv3 LV2
+ 		PRODUCT_NAME ${productName}                       # The name of the final executable, which can differ from the target name
+diff --git a/source/juceRmlUi/CMakeLists.txt b/source/juceRmlUi/CMakeLists.txt
+index 7c5063dc..8130d5f9 100644
+--- a/source/juceRmlUi/CMakeLists.txt
++++ b/source/juceRmlUi/CMakeLists.txt
+@@ -44,13 +44,17 @@ set(SOURCES
+ 	rmlTree.cpp rmlTree.h
+ 	rmlTreeNode.cpp rmlTreeNode.h
+ 
+-	RmlUi_Renderer_GL2.cpp RmlUi_Renderer_GL2.h
+-	RmlUi_Renderer_GL3.cpp RmlUi_Renderer_GL3.h
++	RmlUi_Renderer_GL2.h
++	RmlUi_Renderer_GL3.h
+ 	RmlUi_Renderer_Metal.h
+ 	MetalContext.h
+ )
+ 
+-if(APPLE)
++if(NOT IOS)
++	list(APPEND SOURCES RmlUi_Renderer_GL2.cpp RmlUi_Renderer_GL3.cpp)
++endif()
++
++if(APPLE AND NOT IOS)
+ 	list(APPEND SOURCES
+ 		RmlUi_Renderer_Metal.mm
+ 		MetalContext.mm
+@@ -67,9 +71,9 @@ target_link_libraries(juceRmlUi PUBLIC baseLib dsp56kBase rmlui_core rmlui_debug
+ target_include_directories(juceRmlUi PUBLIC ../JUCE/modules)
+ target_compile_definitions(juceRmlUi PRIVATE JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1)
+ 
+-if(APPLE)
++if(APPLE AND NOT IOS)
+ 	target_compile_definitions(juceRmlUi PRIVATE JUCE_MAC=1)
+-else()
++elseif(NOT APPLE)
+ 	target_compile_definitions(juceRmlUi PRIVATE JUCE_MAC=0)
+ endif()
+ 
+@@ -77,7 +81,11 @@ endif()
+ # and NEON needs no special flags. For macOS universal builds, use
+ # -Xarch_x86_64 so the flags apply only to the x86 slice and don't warn
+ # (or error with -Werror) on the arm64 slice.
+-if(APPLE)
++if(IOS)
++	target_compile_definitions(juceRmlUi PUBLIC JUCERMLUI_NO_GL_RENDERERS=1)
++endif()
++
++if(APPLE AND NOT IOS)
+     # Universal or x86_64-only: scope flags to the x86_64 slice
+     if(CMAKE_OSX_ARCHITECTURES MATCHES "x86_64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "x86|X86|amd64|AMD64")
+         target_compile_options(juceRmlUi PRIVATE -Xarch_x86_64 -mssse3 -Xarch_x86_64 -msse4.1)
+@@ -100,7 +108,7 @@ set_property(TARGET juceRmlUi PROPERTY FOLDER "Gearmulator")
+ 
+ target_compile_definitions(juceRmlUi PUBLIC RMLUI_GL3_CUSTOM_LOADER="juce_opengl/juce_opengl.h")
+ 
+-if(APPLE)
++if(APPLE AND NOT IOS)
+ 	find_library(METAL_FRAMEWORK Metal)
+ 	find_library(QUARTZCORE_FRAMEWORK QuartzCore)
+ 	if(METAL_FRAMEWORK AND QUARTZCORE_FRAMEWORK)
+diff --git a/source/juceRmlUi/RmlUi_Renderer_GL3.cpp b/source/juceRmlUi/RmlUi_Renderer_GL3.cpp
+index 11ab6fcb..6840e303 100644
+--- a/source/juceRmlUi/RmlUi_Renderer_GL3.cpp
++++ b/source/juceRmlUi/RmlUi_Renderer_GL3.cpp
+@@ -736,7 +736,7 @@ static GLuint CreateTexture(Rml::Span<const Rml::byte> source_data, Rml::Vector2
+ 	else if (source_data.size() == 3 * pixelCount)
+ 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, source_dimensions.x, source_dimensions.y, 0, GL_RGB, GL_UNSIGNED_BYTE, source_data.data());
+ 	else if (source_data.size() == pixelCount)
+-		glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, source_dimensions.x, source_dimensions.y, 0, GL_R, GL_UNSIGNED_BYTE, source_data.data());
++		glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, source_dimensions.x, source_dimensions.y, 0, GL_RED, GL_UNSIGNED_BYTE, source_data.data());
+ 	else
+ 	{
+ 		RMLUI_ASSERT(false && "unknown texture format");
+@@ -754,7 +754,9 @@ static GLuint CreateTexture(Rml::Span<const Rml::byte> source_data, Rml::Vector2
+ 	{
+ 		glGenerateMipmap(GL_TEXTURE_2D);
+ 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
++#ifdef GL_TEXTURE_LOD_BIAS
+ 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.3f);
++#endif
+ 	}
+ 
+ 	glBindTexture(GL_TEXTURE_2D, 0);
+diff --git a/source/juceRmlUi/juceRmlComponent.cpp b/source/juceRmlUi/juceRmlComponent.cpp
+index e2c36027..f94cf851 100644
+--- a/source/juceRmlUi/juceRmlComponent.cpp
++++ b/source/juceRmlUi/juceRmlComponent.cpp
+@@ -14,8 +14,10 @@
+ #include "rmlMouseInput.h"
+ #include "rmlRendererJuce.h"
+ 
++#ifndef JUCERMLUI_NO_GL_RENDERERS
+ #include "RmlUi_Renderer_GL2.h"
+ #include "RmlUi_Renderer_GL3.h"
++#endif
+ 
+ #ifdef RMLUI_METAL_RENDERER
+ #include "RmlUi_Renderer_Metal.h"
+@@ -100,7 +102,11 @@ namespace juceRmlUi
+ 
+ 		m_renderProxy.reset(new RendererProxy(m_coreInstance, m_dataProvider));
+ 
++#ifdef JUCERMLUI_NO_GL_RENDERERS
++		if (true)
++#else
+ 		if (_config.forceSoftwareRenderer == SoftwareRendererMode::ForceOn)
++#endif
+ 		{
+ 			m_renderInterface.reset(new RendererJuce(m_coreInstance));
+ 			m_renderType = Renderer::Software;
+@@ -261,7 +267,9 @@ namespace juceRmlUi
+ 		if (version >= static_cast<int>(g_advancedRendererMinimumGLversion) && version < 60)
+ 		{
+ 			Rml::Log::Message(Rml::Log::LT_INFO, "Using OpenGL 3 renderer for RmlUi, version detected: %d.%d", major, minor);
++#ifndef JUCERMLUI_NO_GL_RENDERERS
+ 			m_renderInterface.reset(new RenderInterface_GL3(m_coreInstance));
++#endif
+ 			m_renderType = Renderer::Gl3;
+ 
+ 			if (!haveCustomFPS)
+@@ -289,7 +297,9 @@ namespace juceRmlUi
+ 			Rml::Log::Message(Rml::Log::LT_INFO, "Using OpenGL 2 renderer for RmlUi, version detected: %d.%d, max texture size %d, NPOT supported %d", major, minor, maxSize, npotSupported ? 1 : 0);
+ 
+ 			m_renderProxy->setTextureParameters(static_cast<uint32_t>(maxSize), npotSupported);
++#ifndef JUCERMLUI_NO_GL_RENDERERS
+ 			m_renderInterface.reset(new RenderInterface_GL2(m_coreInstance));
++#endif
+ 			m_renderType = Renderer::Gl2;
+ 		}
+ 
+@@ -335,8 +345,14 @@ namespace juceRmlUi
+ 		glClearColor(0, 0, 0, 1);
+ 		glClear(GL_COLOR_BUFFER_BIT);
+ 
++#ifdef JUCERMLUI_NO_GL_RENDERERS
++		struct NoGlRenderer { void SetViewport(int, int) {} void BeginFrame() {} void EndFrame() {} };
++		NoGlRenderer* gl2 = nullptr;
++		NoGlRenderer* gl3 = nullptr;
++#else
+ 		auto* gl2 = dynamic_cast<RenderInterface_GL2*>(m_renderInterface.get());
+ 		auto* gl3 = dynamic_cast<RenderInterface_GL3*>(m_renderInterface.get());
++#endif
+ 
+ 		if (gl3)
+ 		{
+@@ -368,7 +384,12 @@ namespace juceRmlUi
+ 
+ 			const juce::Image::BitmapData data(m_screenshot, juce::Image::BitmapData::writeOnly);
+ 
+-			glReadPixels(0, 0, size.x, size.y, GL_BGRA, GL_UNSIGNED_BYTE, data.data);
++#if defined(GL_BGRA)
++			constexpr GLenum bgra = GL_BGRA;
++#else
++			constexpr GLenum bgra = GL_BGRA_EXT;
++#endif
++			glReadPixels(0, 0, size.x, size.y, bgra, GL_UNSIGNED_BYTE, data.data);
+ 
+ 			// OpenGL has the origin in the lower left, juce in the upper left, so we need to flip the image vertically
+ 			juce::Image flipped = juce::Image(m_screenshot.getFormat(), m_screenshot.getWidth(), m_screenshot.getHeight(), false);
+### --- submodule source/dsp56300 ---
+diff --git a/source/asmjit b/source/asmjit
+--- a/source/asmjit
++++ b/source/asmjit
+@@ -1 +1 @@
+-Subproject commit 3577608cab0bc509f856ebf6e41b2f9d9f71acc4
++Subproject commit 3577608cab0bc509f856ebf6e41b2f9d9f71acc4-dirty
+diff --git a/source/dsp56kBase/cowmemory.cpp b/source/dsp56kBase/cowmemory.cpp
+index 111c374..b80dcd7 100644
+--- a/source/dsp56kBase/cowmemory.cpp
++++ b/source/dsp56kBase/cowmemory.cpp
+@@ -1,8 +1,19 @@
+ #include "cowmemory.h"
+ 
+ #ifdef __APPLE__
++#include <TargetConditionals.h>
++#endif
++
++/* The mach_vm_* family is macOS-only -- it is not exposed by the iOS SDK, so
++ * an __APPLE__ guard compiles on the Mac and fails on the device. Gate on
++ * macOS specifically and let iOS take the unsupported path; every caller
++ * (MmuArray::initFromTemplate) already falls back when this returns false. */
++#if defined(__APPLE__) && defined(TARGET_OS_OSX) && TARGET_OS_OSX
++#define DSP56K_COW_MACH 1
+ #include <mach/mach.h>
+ #include <mach/mach_vm.h>
++#else
++#define DSP56K_COW_MACH 0
+ #endif
+ 
+ namespace dsp56k
+@@ -12,7 +23,7 @@ namespace dsp56k
+ 	bool CowMemory::allocate(const size_t _bytes)
+ 	{
+ 		clear();
+-#ifdef __APPLE__
++#if DSP56K_COW_MACH
+ 		if (!_bytes) return false;
+ 		mach_vm_address_t address = 0;
+ 		if (mach_vm_allocate(mach_task_self(), &address, _bytes, VM_FLAGS_ANYWHERE) != KERN_SUCCESS)
+@@ -30,7 +41,7 @@ namespace dsp56k
+ 	{
+ 		if (this == &_source) return false;
+ 		clear();
+-#ifdef __APPLE__
++#if DSP56K_COW_MACH
+ 		if (!_source.data()) return false;
+ 		mach_vm_address_t address = 0;
+ 		vm_prot_t current = 0, maximum = 0;
+@@ -54,7 +65,7 @@ namespace dsp56k
+ 
+ 	void CowMemory::clear()
+ 	{
+-#ifdef __APPLE__
++#if DSP56K_COW_MACH
+ 		if (m_data)
+ 			mach_vm_deallocate(mach_task_self(), reinterpret_cast<mach_vm_address_t>(m_data), m_size);
+ #endif
+diff --git a/source/dsp56kEmu/dsp.cpp b/source/dsp56kEmu/dsp.cpp
+index 612813b..0ef8b1e 100644
+--- a/source/dsp56kEmu/dsp.cpp
++++ b/source/dsp56kEmu/dsp.cpp
+@@ -1,6 +1,9 @@
+ // DSP 56300 family 24-bit DSP emulator
+ 
+ #include "dsp.h"
++#include <utility>
++#include <algorithm>
++#include <vector>
+ 
+ #include <atomic>
+ #include <chrono>
+@@ -83,6 +86,119 @@ namespace dsp56k
+ 	// _____________________________________________________________________________
+ 	// DSP
+ 	//
++	// DIAGNOSTIC (env-gated): DSP_PC_HIST=<dir> records how many times each PC is
++	// executed (interpreter: per instruction; JIT: per block entry) and dumps the
++	// hottest PCs at exit. Used to locate where emulated cycles are actually spent.
++	namespace
++	{
++		constexpr uint32_t g_pcHistSize = 0x200000;
++
++		struct PcHistRegistry
++		{
++			std::vector<std::pair<int, uint64_t*>> entries;
++
++			~PcHistRegistry()
++			{
++				const char* const dir = std::getenv("DSP_PC_HIST");
++				if(!dir)
++					return;
++				for(auto& e : entries)
++				{
++					char path[512];
++					std::snprintf(path, sizeof(path), "%s/pchist%d.txt", dir, e.first);
++					FILE* f = std::fopen(path, "w");
++					if(!f)
++						continue;
++					std::vector<std::pair<uint64_t, uint32_t>> v;
++					uint64_t total = 0;
++					for(uint32_t pc=0; pc<g_pcHistSize; ++pc)
++					{
++						if(e.second[pc])
++						{
++							v.emplace_back(e.second[pc], pc);
++							total += e.second[pc];
++						}
++					}
++					std::sort(v.begin(), v.end(), std::greater<>());
++					std::fprintf(f, "total %llu distinct %zu\n", static_cast<unsigned long long>(total), v.size());
++					for(size_t i=0; i<v.size() && i<200; ++i)
++						std::fprintf(f, "%06x %llu %.2f%%\n", v[i].second,
++							static_cast<unsigned long long>(v[i].first),
++							total ? 100.0 * double(v[i].first) / double(total) : 0.0);
++					std::fclose(f);
++					delete[] e.second;
++				}
++			}
++		};
++
++		PcHistRegistry g_pcHistRegistry;
++	}
++
++	void DSP::initDivergenceTrace()
++	{
++		static std::atomic<int> s_next{0};
++		m_traceId = s_next.fetch_add(1);
++
++		if(std::getenv("DSP_PC_HIST"))
++		{
++			m_pcHist = new uint64_t[g_pcHistSize]();
++			g_pcHistRegistry.entries.emplace_back(m_traceId, m_pcHist);
++		}
++
++		const char* const dir = std::getenv("DSP_TRACE_DIR");
++		if(!dir)
++			return;
++		const char* const cnt = std::getenv("DSP_TRACE_COUNT");
++		m_traceRemaining = cnt ? std::strtoull(cnt, nullptr, 10) : 400000;
++
++		// Optional: don't start until the PC first reaches this address, so a
++		// window can be aimed at a divergence millions of instructions in.
++		if(const char* const trig = std::getenv("DSP_TRACE_TRIGGER_PC"))
++			m_traceTriggerPc = static_cast<TWord>(std::strtoul(trig, nullptr, 16));
++		else
++			m_traceArmed = true;
++
++		char path[512];
++		std::snprintf(path, sizeof(path), "%s/dsp%d.trace", dir, m_traceId);
++		m_traceFile = std::fopen(path, "w");
++	}
++
++	void DSP::traceDivergence()
++	{
++		if(m_pcHist && pcCurrentInstruction < g_pcHistSize)
++			++m_pcHist[pcCurrentInstruction];
++
++		if(!m_traceFile || !m_traceRemaining)
++			return;
++		if(!m_traceArmed)
++		{
++			if(pcCurrentInstruction != m_traceTriggerPc)
++				return;
++			m_traceArmed = true;
++		}
++		static const bool events = std::getenv("DSP_TRACE_EVENTS") != nullptr;
++		if(events && pcCurrentInstruction != 0x44 && pcCurrentInstruction != 0x49 && pcCurrentInstruction != 0x9c2 && pcCurrentInstruction != 0x9a8 && pcCurrentInstruction != 0x100000)
++			return;
++		--m_traceRemaining;
++		std::fprintf(m_traceFile, "%06x %06x %06x %06x %02x\n",
++			static_cast<uint32_t>(pcCurrentInstruction),
++			static_cast<uint32_t>(reg.lc.var & 0xffffff),
++			static_cast<uint32_t>(reg.la.var & 0xffffff),
++			static_cast<uint32_t>(reg.sr.var & 0xffffff),
++			static_cast<uint32_t>(reg.sc.var & 0xff));
++		std::fprintf(m_traceFile, "state cycles=%llu instr=%llu a=%014llx b=%014llx x=%012llx y=%012llx",
++			static_cast<unsigned long long>(m_cycles), static_cast<unsigned long long>(m_instructions),
++			static_cast<unsigned long long>(reg.a.var), static_cast<unsigned long long>(reg.b.var),
++			static_cast<unsigned long long>(reg.x.var), static_cast<unsigned long long>(reg.y.var));
++		for(unsigned i=0; i<8; ++i) std::fprintf(m_traceFile, " r%u=%06x", i, unsigned(reg.r[i].var));
++		std::fprintf(m_traceFile, "\n");
++		if(!m_traceRemaining)
++		{
++			std::fclose(m_traceFile);
++			m_traceFile = nullptr;
++		}
++	}
++
+ 	DSP::DSP(Memory& _memory, IPeripherals* _pX, IPeripherals* _pY)
+ 		: mem(_memory)
+ 		, perif({_pX, _pY})
+@@ -94,6 +210,8 @@ namespace dsp56k
+ 	{
+ 		assert(_pX != _pY && "cannot use the same peripherals twice");
+ 
++		initDivergenceTrace();
++
+ 		mem.setDSP(this);
+ 
+ 		m_disasm.addSymbols(mem);
+@@ -404,11 +522,14 @@ namespace dsp56k
+ 		m_currentOpLen = 1;
+ 
+ 		const TWord currentOp = pcCurrentInstruction;
++		const auto instructionsBefore = m_instructions;
+ 		const auto& opCache = m_opcodeCache[currentOp];
+ 
+ 		exec_jump(opCache.op, op);
+ 
+-		if(pcCurrentInstruction == currentOp)
++		// DO/REP can account for themselves before returning. In bounded DO
++		// mode the current PC still names DO, so the PC check alone charges twice.
++		if(pcCurrentInstruction == currentOp && m_instructions == instructionsBefore)
+ 		{
+ 			++m_instructions;
+ 
+@@ -580,6 +701,9 @@ namespace dsp56k
+ 		
+ 		sr_set( SR_LF );
+ 
++		// A nonzero loop slice asks the interpreter to preserve the hardware
++		// loop state and return to its host scheduler. execInterpreter applies
++		// the loop epilogue after each subsequent body instruction.
+ 		if constexpr(!g_useJIT)
+ 			m_cycles += getOpcodeCycles(pcCurrentInstruction);
+ 
+@@ -587,6 +711,19 @@ namespace dsp56k
+ 
+ 		traceOp();
+ 
++		// Remember the stack level this loop lives at, so the epilogue in
++		// execInterpreter only applies loop-back at that level (matching the
++		// original inline loop's "sc >= stackCount" guard).
++		m_doStackLevel = static_cast<uint32_t>(reg.sc.var);
++
++		// A nonzero loop slice asks the interpreter to preserve the hardware
++		// loop state and return to its host scheduler. Return AFTER charging for
++		// the DO instruction itself: the JIT charges for it either way, and the
++		// MD/MM scheduler paces every component off getCycles(), so skipping it
++		// makes the interpreter drift against the JIT in loop-heavy code.
++		if(m_jit.getConfig().maxDoIterations)
++			return true;
++
+ 		// __________________
+ 		//
+ 
+@@ -638,6 +775,14 @@ namespace dsp56k
+ 
+ 	bool DSP::rep_exec(const TWord _loopCount)
+ 	{
++		if(_loopCount > 1000 && getCycles() > 190'000'000 && getCycles() < 270'000'000)
++		{
++			static unsigned diagnosticRepCount = 0;
++			if(diagnosticRepCount++ < 30)
++				std::fprintf(stderr, "MD_REP pc=%06x count=%u cycles=%llu\n",
++					pcCurrentInstruction, _loopCount,
++					static_cast<unsigned long long>(getCycles()));
++		}
+ 		const auto lcBackup = reg.lc;
+ 		reg.lc.var = _loopCount;
+ 
+diff --git a/source/dsp56kEmu/dsp.h b/source/dsp56kEmu/dsp.h
+index 7fa8678..82d5632 100644
+--- a/source/dsp56kEmu/dsp.h
++++ b/source/dsp56kEmu/dsp.h
+@@ -1,6 +1,7 @@
+ #pragma once
+ 
+ #include <atomic>
++#include <cstdio>
+ 
+ #include "disasm.h"
+ #include "dspconfig.h"
+@@ -92,6 +93,25 @@ namespace dsp56k
+ 		std::array<IPeripherals* const, 2>	perif;
+ 		
+ 		TWord							pcCurrentInstruction = 0;
++
++		// Divergence tracing: the same engine run with and without bounded DO
++		// loops is directly comparable, so a diff of these two traces names the
++		// instruction where the bounded path changes semantics.
++		int								m_traceId = -1;
++		FILE*							m_traceFile = nullptr;
++		uint64_t						m_traceRemaining = 0;
++		// Stack level at which the active bounded hardware loop was set up. The
++		// original inline loop ran while "sc >= stackCount", so loop-back still
++		// applies inside a JSR (sc higher) but never once the stack has unwound
++		// below the loop -- e.g. after an RTI from an interrupt that happened to
++		// land on la+1. Requiring equality instead breaks any loop whose body calls
++		// a subroutine: the loop never ends and the PC runs off (SIGSEGV).
++		uint32_t						m_doStackLevel = 0;	// 0 = unguarded until a DO sets it
++		TWord							m_traceTriggerPc = 0xffffffff;
++		bool							m_traceArmed = false;
++		uint64_t*						m_pcHist = nullptr;	// DIAGNOSTIC: DSP_PC_HIST, see dsp.cpp
++		void initDivergenceTrace();
++		void traceDivergence();
+ 		TWord							m_opWordB = 0;
+ 		uint32_t						m_currentOpLen = 0;
+ 
+@@ -198,7 +218,52 @@ namespace dsp56k
+ 				execJit();
+ 			else
+ 			{
+-				execInterpreter();
++				const auto& config = m_jit.getConfig();
++				if(!config.maxDoIterations || !sr_test_noCache(SR_LF))
++				{
++					execInterpreter();
++					return;
++				}
++
++				// A host that asks for bounded slices is pacing this DSP against
++				// other components, and it tuned that pacing against the JIT --
++				// where one exec() runs a whole block of up to
++				// maxInstructionsPerBlock instructions. Executing a single
++				// instruction here instead yields to that host ~32x more often,
++				// which changes the interleaving a cycle-exact transport depends
++				// on. Match the JIT's granularity outside hardware loops too.
++				if(!sr_test_noCache(SR_LF))
++				{
++					const uint32_t blockLimit = config.maxInstructionsPerBlock
++						? config.maxInstructionsPerBlock : 32;
++					for(uint32_t i = 0; i < blockLimit; ++i)
++					{
++						execInterpreter();
++						if(sr_test_noCache(SR_LF))
++							break;		// entered a hardware loop; let the loop path take over
++					}
++					return;
++				}
++
++				// Match the JIT's bounded hardware-loop slices. Count completed
++				// iterations, but also cap instructions so a polling loop that never
++				// reaches LA still returns to a single-threaded host scheduler.
++				const uint32_t instructionLimit = config.maxInstructionsPerBlock
++					? config.maxInstructionsPerBlock : 32;
++				uint32_t instructions = 0;
++				uint32_t iterations = 0;
++				while(instructions++ < instructionLimit
++					&& iterations < config.maxDoIterations
++					&& sr_test_noCache(SR_LF))
++				{
++					const auto stackBefore = reg.sc.var;
++					const auto loopCountBefore = reg.lc.var;
++					execInterpreter();
++					if(reg.sc.var < stackBefore
++						|| (!sr_test_noCache(SR_LF))
++						|| (reg.sc.var == stackBefore && reg.lc.var < loopCountBefore))
++						++iterations;
++				}
+ 			}
+ 		}
+ 
+@@ -267,6 +332,8 @@ namespace dsp56k
+ 				m_interruptFunc(this);
+ 
+ 			const auto pc = getPC().toWord();
++			pcCurrentInstruction = pc;
++			traceDivergence();
+ 			LOGJITPC(pc);
+ 
+ 			// SAFETY NET: the JIT dispatch table only spans valid P memory. A PC outside of it (a jump/jsr to a
+@@ -305,7 +372,34 @@ namespace dsp56k
+ 
+ 			const auto op = fetchPC();
+ 
++			traceDivergence();
++
+ 			execOp(op);
++
++			// Hosts that request bounded DO loops need each interpreter call to
++			// return to their scheduler. The loop registers and hardware stack
++			// retain the state needed to resume at the next call.
++			// Loop-back applies only when the instruction just executed really was
++			// the loop's last one. Testing the destination alone (pc == la+1) also
++			// matches an interrupt handler returning to that address from
++			// somewhere else, which adds a spurious iteration -- measured as ~20
++			// extra words written by the mixer's copy loop versus the JIT.
++			if(m_jit.getConfig().maxDoIterations
++				&& sr_test_noCache(SR_LF)
++				&& pcCurrentInstruction == reg.la.var
++				&& reg.pc.var == reg.la.var + 1)
++			{
++				if(reg.lc.var <= 1)
++				{
++					setPC(reg.la.var + 1);
++					do_end();
++				}
++				else
++				{
++					--reg.lc.var;
++					setPC(hiword(reg.ss[ssIndex()]));
++				}
++			}
+ 		}
+ 
+ 		template<typename Ta, typename Tb> void execPeriph() noexcept
+diff --git a/source/dsp56kEmu/error.h b/source/dsp56kEmu/error.h
+index 0fff7e1..55c6ce8 100644
+--- a/source/dsp56kEmu/error.h
++++ b/source/dsp56kEmu/error.h
+@@ -3,15 +3,30 @@
+ #include "dsp56kBase/dspassert.h"
+ #include "dsp56kBase/logging.h"
+ 
++#include <atomic>
++#include <cstdint>
++
+ namespace dsp56k
+ {
+ }
+ 
++// Rate-limited. A firmware fault that repeats per emulated instruction can
++// otherwise emit millions of lines: MM produced 3.48M of these (162 MB) in 90
++// seconds on an iPad, where formatting and writing them to the device console
++// dominated the run and made the emulator look several times slower than it is.
++// Keep the first few per site, then count silently.
+ #define LOG_ERR_BASE(A,ERR)					\
+ {											\
+-	std::stringstream ss;	ss << __func__ << "@" << __LINE__ << ": " << "DSP 56300 ERROR: " << ERR;		\
+-	LOGTOCONSOLE( ss );						\
+-	assertf( A, ss.str().c_str() );			\
++	static std::atomic<uint64_t> s_errCount{0};	\
++	const auto s_n = s_errCount.fetch_add(1, std::memory_order_relaxed);	\
++	if(s_n < 8 || s_n == 1000 || (s_n % 1000000) == 0)	\
++	{										\
++		std::stringstream ss;	ss << __func__ << "@" << __LINE__ << ": " << "DSP 56300 ERROR: " << ERR;		\
++		if(s_n >= 8)						\
++			ss << " [repeated " << s_n << " times]";	\
++		LOGTOCONSOLE( ss );					\
++		assertf( A, ss.str().c_str() );		\
++	}										\
+ }
+ 
+ // emulation errors
+diff --git a/source/dsp56kEmu/interpreterunittests.cpp b/source/dsp56kEmu/interpreterunittests.cpp
+index 47e7c4c..113e642 100644
+--- a/source/dsp56kEmu/interpreterunittests.cpp
++++ b/source/dsp56kEmu/interpreterunittests.cpp
+@@ -140,6 +140,46 @@ namespace dsp56k
+ 		dsp.setPC(0x100);
+ 		dsp.execInterpreter();
+ 		verify(dsp.getCycles() == 15); // DO (5) + five two-NOP iterations
++
++		// A host that sets a DO-loop slice must regain control between loop
++		// iterations. This is required when the loop polls a peripheral whose
++		// external peer advances on the host scheduler thread.
++		dsp.resetHW();
++		auto config = dsp.getJit().getConfig();
++		config.maxDoIterations = 1;
++		dsp.getJit().setConfig(config);
++		pc = 0x100;
++		pc = emitToMemory("do #$5,>$104", pc);
++		pc = emitToMemory("nop", pc);
++		emitToMemory("nop", pc);
++		dsp.setPC(0x100);
++		dsp.execInterpreter();
++		verify(dsp.getCycles() == 5);
++		verify(dsp.getPC().toWord() == 0x102);
++		for(size_t i = 0; i < 10; ++i)
++			dsp.execInterpreter();
++		verify(dsp.getCycles() == 15);
++		verify(dsp.getPC().toWord() == 0x104);
++
++		// The configured value is an iteration slice, not merely an on/off
++		// switch. Four iterations should execute under one scheduler call while
++		// retaining the fifth iteration for the next call.
++		dsp.resetHW();
++		config.maxDoIterations = 4;
++		dsp.getJit().setConfig(config);
++		pc = 0x100;
++		pc = emitToMemory("do #$5,>$104", pc);
++		pc = emitToMemory("nop", pc);
++		emitToMemory("nop", pc);
++		dsp.setPC(0x100);
++		dsp.exec();
++		verify(dsp.getCycles() == 5);
++		dsp.exec();
++		verify(dsp.getCycles() == 13);
++		verify(dsp.getPC().toWord() == 0x102);
++		dsp.exec();
++		verify(dsp.getCycles() == 15);
++		verify(dsp.getPC().toWord() == 0x104);
+ 	}
+ 
+ 	void InterpreterUnitTests::execOpcode(uint32_t _op0, uint32_t _op1, const bool _reset, TWord _pc)
+diff --git a/source/dsp56kEmu/jitops_jmp.cpp b/source/dsp56kEmu/jitops_jmp.cpp
+index 8f99a7a..6342b65 100644
+--- a/source/dsp56kEmu/jitops_jmp.cpp
++++ b/source/dsp56kEmu/jitops_jmp.cpp
+@@ -1,12 +1,25 @@
+ #include "jitops.h"
+ 
++#include <cstdlib>
++
+ #include "jitops_jmp.inl"
+ #include "dsp.h"
+ 
+ namespace dsp56k
+ {
++	// DIAGNOSTIC (env-gated): MD_NO_FRAMESYNC_FF=1 disables the JIT-only frame-sync
++	// fast-forward so the JIT spins like the interpreter does. Control experiment only.
++	static bool frameSyncFastForwardDisabled()
++	{
++		static const bool s_disabled = getenv("MD_NO_FRAMESYNC_FF") != nullptr;
++		return s_disabled;
++	}
++
+ 	void skipToFrameSync(DSP* _dsp, TWord _instructions)
+ 	{
++		if(frameSyncFastForwardDisabled())
++			return;
++
+ //		m_block.increaseInstructionCount(r32(count));
+ 		// TODO: we should increase by the cycle count here, but as the custom peripheral func still works on instructions, we need to use 1 for now
+ //		const auto cycles = dsp56k::calcCycles(Inst, m_pcCurrentOp, op, m_block.dsp().memory().getBridgedMemoryAddress(), 1);
+diff --git a/source/dsp56kEmu/memory.cpp b/source/dsp56kEmu/memory.cpp
+index bbdc001..fa66d56 100644
+--- a/source/dsp56kEmu/memory.cpp
++++ b/source/dsp56kEmu/memory.cpp
+@@ -115,6 +115,30 @@ namespace dsp56k
+ 
+ 		memTranslateAddress(_area, _offset);
+ 
++		if(_area == MemArea_P && _offset == 0x101327 && m_dsp)
++		{
++			const auto& r = m_dsp->readRegs();
++			std::fprintf(stderr, "MD_WRITE_TRAP dsp=%p pc=%06x next=%06x value=%06x cycles=%llu lc=%06x la=%06x sr=%06x sc=%x\n",
++				static_cast<void*>(m_dsp), m_dsp->getPC().toWord()-1, m_dsp->getPC().toWord(), _value,
++				static_cast<unsigned long long>(m_dsp->getCycles()), unsigned(r.lc.var), unsigned(r.la.var), unsigned(r.sr.var), unsigned(r.sc.var));
++			static bool dumped = false;
++			if(!dumped && m_dsp->getPC().toWord() == 0x14ff1e)
++			{
++				dumped = true;
++				Disassembler disassembler(m_dsp->opcodes());
++				for(TWord addr=0x14ff00; addr<0x14ff40;)
++				{
++					std::string decoded;
++					auto len = disassembler.disassemble(decoded, get(MemArea_P, addr), get(MemArea_P, addr+1), unsigned(r.sr.var), unsigned(r.omr.var), addr);
++					std::fprintf(stderr, "MD_ROM %06x %06x %s\n", addr, get(MemArea_P, addr), decoded.c_str());
++					addr += len ? len : 1;
++				}
++			}
++			for(unsigned i=0; i<8; ++i)
++				std::fprintf(stderr, "MD_WRITE_REG r%u=%06x n=%06x m=%06x\n", i, unsigned(r.r[i].var), unsigned(r.n[i].var), unsigned(r.m[i].var));
++		}
++
++
+ #ifdef _DEBUG
+ 		assert(_offset < XIO_Reserved_High_First);
+ 		if(!m_memoryMap.memValidateAccess(_area, _offset, true))

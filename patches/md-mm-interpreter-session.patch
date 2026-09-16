@@ -1,0 +1,90 @@
+# Incremental session changes AFTER md-mm-ios.patch has been applied to parent and DSP submodule.
+# Apply this file at fork root with git apply -p1. Contains diagnostic instrumentation.
+diff --git a/source/dsp56300/source/dsp56kEmu/dsp.cpp b/source/dsp56300/source/dsp56kEmu/dsp.cpp
+--- a/source/dsp56300/source/dsp56kEmu/dsp.cpp
++++ b/source/dsp56300/source/dsp56kEmu/dsp.cpp
+@@ -116,6 +116,9 @@
+ 				return;
+ 			m_traceArmed = true;
+ 		}
++		static const bool events = std::getenv("DSP_TRACE_EVENTS") != nullptr;
++		if(events && pcCurrentInstruction != 0x44 && pcCurrentInstruction != 0x49 && pcCurrentInstruction != 0x9c2 && pcCurrentInstruction != 0x9a8 && pcCurrentInstruction != 0x100000)
++			return;
+ 		--m_traceRemaining;
+ 		std::fprintf(m_traceFile, "%06x %06x %06x %06x %02x\n",
+ 			static_cast<uint32_t>(pcCurrentInstruction),
+@@ -123,6 +126,12 @@
+ 			static_cast<uint32_t>(reg.la.var & 0xffffff),
+ 			static_cast<uint32_t>(reg.sr.var & 0xffffff),
+ 			static_cast<uint32_t>(reg.sc.var & 0xff));
++		std::fprintf(m_traceFile, "state cycles=%llu instr=%llu a=%014llx b=%014llx x=%012llx y=%012llx",
++			static_cast<unsigned long long>(m_cycles), static_cast<unsigned long long>(m_instructions),
++			static_cast<unsigned long long>(reg.a.var), static_cast<unsigned long long>(reg.b.var),
++			static_cast<unsigned long long>(reg.x.var), static_cast<unsigned long long>(reg.y.var));
++		for(unsigned i=0; i<8; ++i) std::fprintf(m_traceFile, " r%u=%06x", i, unsigned(reg.r[i].var));
++		std::fprintf(m_traceFile, "\n");
+ 		if(!m_traceRemaining)
+ 		{
+ 			std::fclose(m_traceFile);
+@@ -453,11 +462,14 @@
+ 		m_currentOpLen = 1;
+ 
+ 		const TWord currentOp = pcCurrentInstruction;
++		const auto instructionsBefore = m_instructions;
+ 		const auto& opCache = m_opcodeCache[currentOp];
+ 
+ 		exec_jump(opCache.op, op);
+ 
+-		if(pcCurrentInstruction == currentOp)
++		// DO/REP can account for themselves before returning. In bounded DO
++		// mode the current PC still names DO, so the PC check alone charges twice.
++		if(pcCurrentInstruction == currentOp && m_instructions == instructionsBefore)
+ 		{
+ 			++m_instructions;
+ 
+diff --git a/source/dsp56300/source/dsp56kEmu/dsp.h b/source/dsp56300/source/dsp56kEmu/dsp.h
+--- a/source/dsp56300/source/dsp56kEmu/dsp.h
++++ b/source/dsp56300/source/dsp56kEmu/dsp.h
+@@ -331,6 +331,8 @@
+ 				m_interruptFunc(this);
+ 
+ 			const auto pc = getPC().toWord();
++			pcCurrentInstruction = pc;
++			traceDivergence();
+ 			LOGJITPC(pc);
+ 
+ 			// SAFETY NET: the JIT dispatch table only spans valid P memory. A PC outside of it (a jump/jsr to a
+diff --git a/source/dsp56300/source/dsp56kEmu/memory.cpp b/source/dsp56300/source/dsp56kEmu/memory.cpp
+--- a/source/dsp56300/source/dsp56kEmu/memory.cpp
++++ b/source/dsp56300/source/dsp56kEmu/memory.cpp
+@@ -115,6 +115,30 @@
+ 
+ 		memTranslateAddress(_area, _offset);
+ 
++		if(_area == MemArea_P && _offset == 0x101327 && m_dsp)
++		{
++			const auto& r = m_dsp->readRegs();
++			std::fprintf(stderr, "MD_WRITE_TRAP dsp=%p pc=%06x next=%06x value=%06x cycles=%llu lc=%06x la=%06x sr=%06x sc=%x\n",
++				static_cast<void*>(m_dsp), m_dsp->getPC().toWord()-1, m_dsp->getPC().toWord(), _value,
++				static_cast<unsigned long long>(m_dsp->getCycles()), unsigned(r.lc.var), unsigned(r.la.var), unsigned(r.sr.var), unsigned(r.sc.var));
++			static bool dumped = false;
++			if(!dumped && m_dsp->getPC().toWord() == 0x14ff1e)
++			{
++				dumped = true;
++				Disassembler disassembler(m_dsp->opcodes());
++				for(TWord addr=0x14ff00; addr<0x14ff40;)
++				{
++					std::string decoded;
++					auto len = disassembler.disassemble(decoded, get(MemArea_P, addr), get(MemArea_P, addr+1), unsigned(r.sr.var), unsigned(r.omr.var), addr);
++					std::fprintf(stderr, "MD_ROM %06x %06x %s\n", addr, get(MemArea_P, addr), decoded.c_str());
++					addr += len ? len : 1;
++				}
++			}
++			for(unsigned i=0; i<8; ++i)
++				std::fprintf(stderr, "MD_WRITE_REG r%u=%06x n=%06x m=%06x\n", i, unsigned(r.r[i].var), unsigned(r.n[i].var), unsigned(r.m[i].var));
++		}
++
++
+ #ifdef _DEBUG
+ 		assert(_offset < XIO_Reserved_High_First);
+ 		if(!m_memoryMap.memValidateAccess(_area, _offset, true))

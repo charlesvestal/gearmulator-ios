@@ -1,0 +1,86 @@
+MD_EARLY tick=10 bytes=3146 tiles=314 ucPC=244 mixerPC=14ff00 producerPC=14ff00 mixerInstr=20323449 producerInstr=20318370 mixerCycles=101617607 producerCycles=101592201 ucCycles=40054426
+MD_WRITE_TRAP dsp=0x16d3a1120 pc=14ff1d next=14ff1e value=fbd500 cycles=108765415 lc=00055b la=14ff20 sr=008019 sc=2
+MD_ROM 14ff00 0cc300 brclr   #$0,x:<<$ffffc3,func_14ff00
+MD_ROM 14ff02 084e06 movep   x:<<$ffffc6,a
+MD_ROM 14ff03 0cc301 brclr   #$1,x:<<$ffffc3,func_14ff03
+MD_ROM 14ff05 08ce07 movep   a,x:<<$ffffc7
+MD_ROM 14ff06 0cc300 brclr   #$0,x:<<$ffffc3,func_14ff06
+MD_ROM 14ff08 085006 movep   x:<<$ffffc6,r0
+MD_ROM 14ff09 0140c5 cmp     #>$3,a
+MD_ROM 14ff0b 0d1042 bne     func_14ff0e
+MD_ROM 14ff0d 0ae080 jmp     (r0)
+MD_ROM 14ff0e 0cc300 brclr   #$0,x:<<$ffffc3,func_14ff0e
+MD_ROM 14ff10 084d06 movep   x:<<$ffffc6,b1
+MD_ROM 14ff11 0140c5 cmp     #>$2,a
+MD_ROM 14ff13 0d104a beq     func_14ff2b
+MD_ROM 14ff15 0140c5 cmp     #>$1,a
+MD_ROM 14ff17 0d104a beq     func_14ff22
+MD_ROM 14ff19 06cd10 dor     b1,>*+$8
+MD_ROM 14ff1b 0cc300 brclr   #$0,x:<<$ffffc3,func_14ff1b
+MD_ROM 14ff1d 085846 movep   x:<<$ffffc6,p:(r0)+
+MD_ROM 14ff1e 000000 nop  
+MD_ROM 14ff1f 000000 nop  
+MD_ROM 14ff20 000000 nop  
+MD_ROM 14ff21 050f9f bra     func_14ff00
+MD_ROM 14ff22 06cd10 dor     b1,>*+$8
+MD_ROM 14ff24 0cc300 brclr   #$0,x:<<$ffffc3,func_14ff24
+MD_ROM 14ff26 085886 movep   x:<<$ffffc6,x:(r0)+
+MD_ROM 14ff27 000000 nop  
+MD_ROM 14ff28 000000 nop  
+MD_ROM 14ff29 000000 nop  
+MD_ROM 14ff2a 050f96 bra     func_14ff00
+MD_ROM 14ff2b 06cd10 dor     b1,>*+$8
+MD_ROM 14ff2d 0cc300 brclr   #$0,x:<<$ffffc3,func_14ff2d
+MD_ROM 14ff2f 0858c6 movep   x:<<$ffffc6,y:(r0)+
+MD_ROM 14ff30 000000 nop  
+MD_ROM 14ff31 000000 nop  
+MD_ROM 14ff32 000000 nop  
+MD_ROM 14ff33 050f8d bra     func_14ff00
+MD_ROM 14ff34 00000c rts  
+MD_ROM 14ff35 00000c rts  
+MD_ROM 14ff36 00000c rts  
+MD_ROM 14ff37 00000c rts  
+MD_ROM 14ff38 00000c rts  
+MD_ROM 14ff39 00000c rts  
+MD_ROM 14ff3a 00000c rts  
+MD_ROM 14ff3b 00000c rts  
+MD_ROM 14ff3c 00000c rts  
+MD_ROM 14ff3d 00000c rts  
+MD_ROM 14ff3e 00000c rts  
+MD_ROM 14ff3f 00000c rts  
+MD_WRITE_REG r0=101328 n=000000 m=ffffff
+MD_WRITE_REG r1=14ffff n=000000 m=ffffff
+MD_WRITE_REG r2=000000 n=000000 m=ffffff
+MD_WRITE_REG r3=000000 n=000000 m=ffffff
+MD_WRITE_REG r4=000000 n=000000 m=ffffff
+MD_WRITE_REG r5=000000 n=000000 m=ffffff
+MD_WRITE_REG r6=000000 n=000000 m=ffffff
+MD_WRITE_REG r7=000000 n=000000 m=ffffff
+MD_EARLY tick=11 bytes=3146 tiles=314 ucPC=894 mixerPC=14ff00 producerPC=14ff1b mixerInstr=22328851 producerInstr=22534957 mixerCycles=111644617 producerCycles=111800636 ucCycles=44001820
+MD_EARLY tick=12 bytes=3146 tiles=314 ucPC=734 mixerPC=14ff00 producerPC=14ff21 mixerInstr=24393235 producerInstr=25375647 mixerCycles=121966537 producerCycles=124672667 ucCycles=48065312
+MD_WRITE_TRAP dsp=0x16d38c2e8 pc=143e68 next=143e69 value=000000 cycles=146162025 lc=036cd9 la=143e69 sr=0083d0 sc=4
+MD_WRITE_REG r0=101328 n=000000 m=ffffff
+MD_WRITE_REG r1=000001 n=000000 m=ffffff
+MD_WRITE_REG r2=000000 n=000000 m=ffffff
+MD_WRITE_REG r3=000000 n=000000 m=ffffff
+MD_WRITE_REG r4=0001be n=000040 m=ffffff
+MD_WRITE_REG r5=000000 n=000000 m=ffffff
+MD_WRITE_REG r6=000000 n=000000 m=ffffff
+MD_WRITE_REG r7=000150 n=000000 m=ffffff
+MD_EARLY tick=15 bytes=3146 tiles=314 ucPC=20a mixerPC=4c9 producerPC=100095 mixerInstr=34348088 producerInstr=36656736 mixerCycles=152342471 producerCycles=152317065 ucCycles=60023587
+MD_WRITE_TRAP dsp=0x16d38c2e8 pc=00042d next=00042e value=000000 cycles=157428044 lc=00000a la=00042e sr=0080d4 sc=2
+MD_WRITE_REG r0=0000ce n=000000 m=00001f
+MD_WRITE_REG r1=0000c0 n=ffffbf m=00001f
+MD_WRITE_REG r2=101327 n=017afc m=ffffff
+MD_WRITE_REG r3=101328 n=017afc m=ffffff
+MD_WRITE_REG r4=00000e n=000005 m=00001f
+MD_WRITE_REG r5=000020 n=000002 m=00001f
+MD_WRITE_REG r6=0006d8 n=000005 m=ffffff
+MD_WRITE_REG r7=000150 n=000000 m=ffffff
+MD_EARLY tick=20 bytes=3146 tiles=314 ucPC=23f588 mixerPC=4c5 producerPC=100095 mixerInstr=73612676 producerInstr=78998123 mixerCycles=203362248 producerCycles=203336839 ucCycles=80108849
+MD_EARLY tick=25 bytes=3146 tiles=314 ucPC=23f58e mixerPC=4d0 producerPC=100095 mixerInstr=112650301 producerInstr=121094779 mixerCycles=254087112 producerCycles=254061703 ucCycles=100078009
+MD_EARLY tick=30 bytes=3160 tiles=314 ucPC=201124 mixerPC=9da producerPC=bf mixerInstr=154766689 producerInstr=162981085 mixerCycles=318215270 producerCycles=307137210 ucCycles=120000005
+fresh boot state: ucPC=0x201124 ucCycles=120000005 mixerPC=0x9da producerPC=0xbf mixerCycles=318215270 producerCycles=307137210 bytes=3160 tiles=314 lit=748
+MD_PROGRAM dsp=0 hash=4e11815db4f755e5 nonzero=202
+MD_PROGRAM dsp=1 hash=1e7a88cba19ce116 nonzero=125648
+fresh boot: panel UART stream stopped early

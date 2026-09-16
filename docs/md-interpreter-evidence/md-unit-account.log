@@ -1,0 +1,12 @@
+_log@30: ret x30
+_log@30: .section .text {#0}
+_log@30: str x20, [sp, -16]!
+_log@30: mov x20, x0
+_log@30: str x30, [sp, -16]!
+_log@30: blr x2
+_log@30: ldr x30, [sp], 16
+_log@30: ldr x20, [sp], 16
+_log@30: ret x30
+set_m@1405: Configured multiple-wrap-around mode with non power-of-two size!00010f
+set_m@1405: Configured multiple-wrap-around mode with non power-of-two size!00010f
+Interpreter Unit Tests finished.

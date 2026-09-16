@@ -1,0 +1,21 @@
+MD_EARLY tick=10 bytes=3146 tiles=314 ucPC=244 mixerPC=14ff00 producerPC=14ff00 mixerInstr=20323449 producerInstr=20318370 mixerCycles=101617607 producerCycles=101592201 ucCycles=40054426
+MD_EARLY tick=11 bytes=3146 tiles=314 ucPC=894 mixerPC=14ff00 producerPC=14ff1e mixerInstr=22328851 producerInstr=22896960 mixerCycles=111644617 producerCycles=111619883 ucCycles=44001820
+MD_EARLY tick=12 bytes=3146 tiles=314 ucPC=22e mixerPC=42 producerPC=100095 mixerInstr=26557048 producerInstr=28232447 mixerCycles=121966535 producerCycles=121941126 ucCycles=48065311
+MD_EARLY tick=15 bytes=3146 tiles=314 ucPC=2004f0 mixerPC=40 producerPC=100095 mixerInstr=49934231 producerInstr=53441503 mixerCycles=152342474 producerCycles=152317069 ucCycles=60023587
+MD_EARLY tick=20 bytes=3146 tiles=314 ucPC=23f598 mixerPC=3c producerPC=100095 mixerInstr=89198818 producerInstr=95780200 mixerCycles=203362250 producerCycles=203336838 ucCycles=80108850
+MD_EARLY tick=25 bytes=3380 tiles=336 ucPC=21287a mixerPC=961 producerPC=100095 mixerInstr=128410925 producerInstr=137873422 mixerCycles=254087129 producerCycles=254061704 ucCycles=100078009
+MD_SNAP_COUNT 202
+MD_EARLY tick=30 bytes=3380 tiles=336 ucPC=201124 mixerPC=99c producerPC=100095 mixerInstr=167936848 producerInstr=179969545 mixerCycles=304811991 producerCycles=304786569 ucCycles=120047171
+fresh boot state: ucPC=0x212724 ucCycles=720000004 mixerPC=0x172 producerPC=0x100095 mixerCycles=1828788171 producerCycles=1828762764 bytes=26894 tiles=2682 lit=2379
+MD_PROGRAM dsp=0 hash=4e11815db4f755e5 nonzero=202
+MD_PROGRAM dsp=1 hash=1e7a88cba19ce116 nonzero=125648
+MD_EARLY tick=10 bytes=3146 tiles=314 ucPC=244 mixerPC=14ff00 producerPC=14ff00 mixerInstr=20323449 producerInstr=20318370 mixerCycles=101617607 producerCycles=101592201 ucCycles=40054426
+MD_EARLY tick=11 bytes=3146 tiles=314 ucPC=894 mixerPC=14ff00 producerPC=14ff1e mixerInstr=22328851 producerInstr=22896960 mixerCycles=111644617 producerCycles=111619883 ucCycles=44001820
+MD_EARLY tick=12 bytes=3146 tiles=314 ucPC=22e mixerPC=42 producerPC=100095 mixerInstr=26557048 producerInstr=28232447 mixerCycles=121966535 producerCycles=121941126 ucCycles=48065311
+MD_EARLY tick=15 bytes=3146 tiles=314 ucPC=2004f0 mixerPC=40 producerPC=100095 mixerInstr=49934231 producerInstr=53441503 mixerCycles=152342474 producerCycles=152317069 ucCycles=60023587
+MD_EARLY tick=20 bytes=3146 tiles=314 ucPC=23f598 mixerPC=3c producerPC=100095 mixerInstr=89198818 producerInstr=95780200 mixerCycles=203362250 producerCycles=203336838 ucCycles=80108850
+MD_EARLY tick=25 bytes=3380 tiles=336 ucPC=21287a mixerPC=961 producerPC=100095 mixerInstr=128410925 producerInstr=137873422 mixerCycles=254087129 producerCycles=254061704 ucCycles=100078009
+MD_EARLY tick=30 bytes=3380 tiles=336 ucPC=201124 mixerPC=99c producerPC=100095 mixerInstr=167936848 producerInstr=179969545 mixerCycles=304811991 producerCycles=304786569 ucCycles=120047171
+MD_PROGRAM dsp=0 hash=4e11815db4f755e5 nonzero=202
+MD_PROGRAM dsp=1 hash=1e7a88cba19ce116 nonzero=125648
+MD firmware-owned panel readiness passed: fresh bytes=26894, tiles=2682, lit=2379; repeat bytes=22090, tiles=2207, lit=1680

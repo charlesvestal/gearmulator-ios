@@ -1,0 +1,2084 @@
+MD_EARLY tick=10 bytes=3146 tiles=314 ucPC=244 mixerPC=14ff00 producerPC=14ff00 mixerInstr=20323449 producerInstr=20318370 mixerCycles=101617607 producerCycles=101592201 ucCycles=40054426
+MD_WRITE_TRAP dsp=0x16b6c91b0 pc=14ff1d next=14ff1e value=fbd500 cycles=108778040 lc=00055b la=14ff20 sr=008019 sc=2
+MD_WRITE_REG r0=101328 n=000000 m=ffffff
+MD_WRITE_REG r1=14ffff n=000000 m=ffffff
+MD_WRITE_REG r2=000000 n=000000 m=ffffff
+MD_WRITE_REG r3=000000 n=000000 m=ffffff
+MD_WRITE_REG r4=000000 n=000000 m=ffffff
+MD_WRITE_REG r5=000000 n=000000 m=ffffff
+MD_WRITE_REG r6=000000 n=000000 m=ffffff
+MD_WRITE_REG r7=000000 n=000000 m=ffffff
+MD_EARLY tick=11 bytes=3146 tiles=314 ucPC=894 mixerPC=14ff00 producerPC=14ff1b mixerInstr=22328851 producerInstr=22527415 mixerCycles=111644617 producerCycles=111767666 ucCycles=44001820
+MD_EARLY tick=12 bytes=3146 tiles=314 ucPC=734 mixerPC=14ff00 producerPC=14ff21 mixerInstr=24393235 producerInstr=25378261 mixerCycles=121966537 producerCycles=124685737 ucCycles=48065312
+MD_WRITE_TRAP dsp=0x16b6b4378 pc=143e68 next=143e69 value=000000 cycles=146177515 lc=036cd9 la=143e69 sr=0083d0 sc=4
+MD_WRITE_REG r0=101328 n=000000 m=ffffff
+MD_WRITE_REG r1=000001 n=000000 m=ffffff
+MD_WRITE_REG r2=000000 n=000000 m=ffffff
+MD_WRITE_REG r3=000000 n=000000 m=ffffff
+MD_WRITE_REG r4=0001be n=000040 m=ffffff
+MD_WRITE_REG r5=000000 n=000000 m=ffffff
+MD_WRITE_REG r6=000000 n=000000 m=ffffff
+MD_WRITE_REG r7=000150 n=000000 m=ffffff
+MD_EARLY tick=15 bytes=3146 tiles=314 ucPC=21a mixerPC=195 producerPC=100096 mixerInstr=34321005 producerInstr=36598900 mixerCycles=152342471 producerCycles=152317062 ucCycles=60023587
+MD_WRITE_TRAP dsp=0x16b6b4378 pc=00042d next=00042e value=000000 cycles=157444654 lc=00000a la=00042e sr=0080d4 sc=2
+MD_WRITE_REG r0=0000ce n=000000 m=00001f
+MD_WRITE_REG r1=0000c0 n=ffffbf m=00001f
+MD_WRITE_REG r2=101327 n=017afc m=ffffff
+MD_WRITE_REG r3=101328 n=017afc m=ffffff
+MD_WRITE_REG r4=00000e n=000005 m=00001f
+MD_WRITE_REG r5=000020 n=000002 m=00001f
+MD_WRITE_REG r6=0006d8 n=000005 m=ffffff
+MD_WRITE_REG r7=000150 n=000000 m=ffffff
+MD_EARLY tick=20 bytes=3146 tiles=314 ucPC=23f5a0 mixerPC=193 producerPC=bd mixerInstr=73437951 producerInstr=78495267 mixerCycles=203362247 producerCycles=203336840 ucCycles=80108850
+MD_EARLY tick=25 bytes=3146 tiles=314 ucPC=23f5a2 mixerPC=193 producerPC=100096 mixerInstr=112328794 producerInstr=120146385 mixerCycles=254087111 producerCycles=254061702 ucCycles=100078010
+MD_WRITE_TRAP dsp=0x16b6b4378 pc=00042e next=00042f value=000000 cycles=277621504 lc=000002 la=00042e sr=0080d4 sc=2
+MD_WRITE_REG r0=0000de n=000000 m=00001f
+MD_WRITE_REG r1=0000c0 n=ffffbf m=00001f
+MD_WRITE_REG r2=101326 n=017afc m=ffffff
+MD_WRITE_REG r3=101327 n=017afc m=ffffff
+MD_WRITE_REG r4=00001e n=000005 m=00001f
+MD_WRITE_REG r5=000020 n=000002 m=00001f
+MD_WRITE_REG r6=0006d8 n=000005 m=ffffff
+MD_WRITE_REG r7=000150 n=fffffe m=ffffff
+MD_WRITE_TRAP dsp=0x16b6b4378 pc=00042d next=00042e value=000000 cycles=277621509 lc=000001 la=00042e sr=0080d4 sc=2
+MD_WRITE_REG r0=0000c0 n=000000 m=00001f
+MD_WRITE_REG r1=0000c0 n=ffffbf m=00001f
+MD_WRITE_REG r2=101327 n=017afc m=ffffff
+MD_WRITE_REG r3=101327 n=017afc m=ffffff
+MD_WRITE_REG r4=000000 n=000005 m=00001f
+MD_WRITE_REG r5=000020 n=000002 m=00001f
+MD_WRITE_REG r6=0006d8 n=000005 m=ffffff
+MD_WRITE_REG r7=000150 n=fffffe m=ffffff
+MD_WRITE_TRAP dsp=0x16b6b4378 pc=00042e next=00042f value=000000 cycles=277621510 lc=000001 la=00042e sr=0080d4 sc=2
+MD_WRITE_REG r0=0000c0 n=000000 m=00001f
+MD_WRITE_REG r1=0000c0 n=ffffbf m=00001f
+MD_WRITE_REG r2=101327 n=017afc m=ffffff
+MD_WRITE_REG r3=101327 n=017afc m=ffffff
+MD_WRITE_REG r4=000000 n=000005 m=00001f
+MD_WRITE_REG r5=000020 n=000002 m=00001f
+MD_WRITE_REG r6=0006d8 n=000005 m=ffffff
+MD_WRITE_REG r7=000150 n=fffffe m=ffffff
+MD_WRITE_TRAP dsp=0x16b6b4378 pc=00042d next=00042e value=000000 cycles=277695158 lc=000010 la=00042e sr=0080d0 sc=2
+MD_WRITE_REG r0=0000c2 n=000000 m=00001f
+MD_WRITE_REG r1=0000c0 n=ffffbf m=00001f
+MD_WRITE_REG r2=101327 n=017afc m=ffffff
+MD_WRITE_REG r3=101327 n=017afc m=ffffff
+MD_WRITE_REG r4=000002 n=000005 m=00001f
+MD_WRITE_REG r5=000020 n=000002 m=00001f
+MD_WRITE_REG r6=0006d8 n=000005 m=ffffff
+MD_WRITE_REG r7=000150 n=fffffe m=ffffff
+MD_WRITE_TRAP dsp=0x16b6b4378 pc=00042e next=00042f value=000057 cycles=277695159 lc=000010 la=00042e sr=0080d0 sc=2
+MD_WRITE_REG r0=0000c2 n=000000 m=00001f
+MD_WRITE_REG r1=0000c0 n=ffffbf m=00001f
+MD_WRITE_REG r2=101327 n=017afc m=ffffff
+MD_WRITE_REG r3=101327 n=017afc m=ffffff
+MD_WRITE_REG r4=000002 n=000005 m=00001f
+MD_WRITE_REG r5=000020 n=000002 m=00001f
+MD_WRITE_REG r6=0006d8 n=000005 m=ffffff
+MD_WRITE_REG r7=000150 n=fffffe m=ffffff
+MD_WRITE_TRAP dsp=0x16b6b4378 pc=00042d next=00042e value=0000af cycles=277695164 lc=00000f la=00042e sr=0080d0 sc=2
+MD_ROM 000000 0af080 jmp     func_ff0000
+MD_ROM 000002 0c0002 jmp     int_000002
+MD_ROM 000003 000000 nop  
+MD_ROM 000004 0c0004 jmp     int_000004
+MD_ROM 000005 000000 nop  
+MD_ROM 000006 0c0006 jmp     int_000006
+MD_ROM 000007 000000 nop  
+MD_ROM 000008 0c0008 jmp     int_000008
+MD_ROM 000009 000000 nop  
+MD_ROM 00000a 0c000a jmp     int_00000a
+MD_ROM 00000b 000000 nop  
+MD_ROM 00000c 000000 nop  
+MD_ROM 00000d 000000 nop  
+MD_ROM 00000e 000000 nop  
+MD_ROM 00000f 000000 nop  
+MD_ROM 000010 0bf080 jsr     func_0009b6
+MD_ROM 000012 0bf080 jsr     func_0009aa
+MD_ROM 000014 0c0014 jmp     int_000014
+MD_ROM 000015 000000 nop  
+MD_ROM 000016 0c0016 jmp     int_000016
+MD_ROM 000017 000000 nop  
+MD_ROM 000018 0bb4a0 jsset   #$0,x:<<$fffff4,func_0009c2
+MD_ROM 00001a 08f4a8 movep   #>$d06510,x:<<$ffffe8
+MD_ROM 00001c 0c001c jmp     int_00001c
+MD_ROM 00001d 000000 nop  
+MD_ROM 00001e 0c001e jmp     int_00001e
+MD_ROM 00001f 000000 nop  
+MD_ROM 000020 0c0020 jmp     int_000020
+MD_ROM 000021 000000 nop  
+MD_ROM 000022 0bb4a5 jsset   #$5,x:<<$fffff4,func_0009bf
+MD_ROM 000024 08f4bd movep   #>$3d0023,x:<<$fffffd
+MD_ROM 000026 0003f8 ori     #$3,mr
+MD_ROM 000027 05f439 move    #>$300,sr
+MD_ROM 000029 000000 nop  
+MD_ROM 00002a 000000 nop  
+MD_ROM 00002b 0bf080 jsr     func_100000
+MD_ROM 00002d 00fcb8 andi    #$fc,mr
+MD_ROM 00002e 44f400 move    #>$600,x0
+MD_ROM 000030 4c7000 move    x0,y:>$1c2
+MD_ROM 000032 4c7000 move    x0,y:>$1c3
+MD_ROM 000034 4c7000 move    x0,y:>$1c4
+MD_ROM 000036 084e2e movep   x:<<$ffffee,a
+MD_ROM 000037 0140c5 cmp     #>$139,a
+MD_ROM 000039 0527dd bne     int_000036
+MD_ROM 00003a 0d0270 jsr     func_000270
+MD_ROM 00003b 0c0294 jmp     func_000294
+MD_ROM 00003c 084e2e movep   x:<<$ffffee,a
+MD_ROM 00003d 0140c5 cmp     #>$13f,a
+MD_ROM 00003f 05a405 beq     int_000044
+MD_ROM 000040 0140c5 cmp     #>$17f,a
+MD_ROM 000042 05a407 beq     int_000049
+MD_ROM 000043 050fd9 bra     int_00003c
+MD_ROM 000044 60f400 move    #>$100,r0
+MD_ROM 000046 63f400 move    #>$400,r3
+MD_ROM 000048 050c05 bra     int_00004d
+MD_ROM 000049 60f400 move    #>$140,r0
+MD_ROM 00004b 63f400 move    #>$4c0,r3
+MD_ROM 00004d 607000 move    r0,x:>$641
+MD_ROM 00004f 637000 move    r3,x:>$640
+MD_ROM 000051 05f420 move    #>$ffffff,m0
+MD_ROM 000053 0461a0 move    m0,m1
+MD_ROM 000054 0462a0 move    m0,m2
+MD_ROM 000055 0463a0 move    m0,m3
+MD_ROM 000056 0464a0 move    m0,m4
+MD_ROM 000057 0465a0 move    m0,m5
+MD_ROM 000058 0466a0 move    m0,m6
+MD_ROM 000059 0467a0 move    m0,m7
+MD_ROM 00005a 64f400 move    #>$100,r4
+MD_ROM 00005c 60f400 move    #>$6c8,r0
+MD_ROM 00005e 3c0500 move    #$5,n4
+MD_ROM 00005f 46f400 move    #>$3e0,y0
+MD_ROM 000061 4e7000 move    y0,y:>$1c8
+MD_ROM 000063 46f400 move    #>$200,y0
+MD_ROM 000065 4e7000 move    y0,y:>$1c6
+MD_ROM 000067 687000 move    r0,y:>$1c9
+MD_ROM 000069 5ecc00 move    y:(r4)+n4,a
+MD_ROM 00006a 5fcc00 move    y:(r4)+n4,b
+MD_ROM 00006b 060880 do      #<$8,>$6f
+MD_ROM 00006d da1800 move    a,x:(r0)+       y:(r4)+n4,a
+MD_ROM 00006e df1800 move    b,x:(r0)+       y:(r4)+n4,b
+MD_ROM 00006f 5ef000 move    y:>$1c5,a
+MD_ROM 000071 015085 cmp     #<$10,a
+MD_ROM 000072 0e1294 jge     func_000294
+MD_ROM 000073 57f000 move    x:<<$ffffde,b
+MD_ROM 000075 4cf000 move    y:>$1c4,x0
+MD_ROM 000077 20004c sub     x0,b
+MD_ROM 000078 01608d cmp     #<$20,b
+MD_ROM 000079 0597da blt     int_000073
+MD_ROM 00007a 5ef000 move    y:>$1c5,a
+MD_ROM 00007c 014f85 cmp     #<$f,a
+MD_ROM 00007d 0fa270 jseq    func_000270
+MD_ROM 00007e 68f000 move    y:>$1c9,r0
+MD_ROM 000080 69f000 move    y:>$1c5,r1
+MD_ROM 000082 5ff000 move    y:>$1c7,b
+MD_ROM 000084 205900 move    (r1)+
+MD_ROM 000085 21f600 move    b,r6
+MD_ROM 000086 0140c8 add     #>$40,b
+MD_ROM 000088 5ef000 move    y:>$1c4,a
+MD_ROM 00008a 5f7000 move    b,y:>$1c7
+MD_ROM 00008c 21d700 move    a,r7
+MD_ROM 00008d 697000 move    r1,y:>$1c5
+MD_ROM 00008f 016080 add     #<$20,a
+MD_ROM 000090 57d800 move    x:(r0)+,b
+MD_ROM 000091 5e7000 move    a,y:>$1c4
+MD_ROM 000093 01468d cmp     #<$6,b
+MD_ROM 000094 052408 bne     int_00009c
+MD_ROM 000095 5ff000 move    y:>$1c6,b
+MD_ROM 000097 21f500 move    b,r5
+MD_ROM 000098 016088 add     #<$20,b
+MD_ROM 000099 5f7000 move    b,y:>$1c6
+MD_ROM 00009b 050c07 bra     int_0000a2
+MD_ROM 00009c 5ff000 move    y:>$1c8,b
+MD_ROM 00009e 21f500 move    b,r5
+MD_ROM 00009f 01608c sub     #<$20,b
+MD_ROM 0000a0 5f7000 move    b,y:>$1c8
+MD_ROM 0000a2 687000 move    r0,y:>$1c9
+MD_ROM 0000a4 041624 lua     (r6+$22),r4
+MD_ROM 0000a5 021ebf move    y:(r6+$6),b
+MD_ROM 0000a6 0c1c8f asr     #$7,b,b
+MD_ROM 0000a7 0216be move    y:(r6+$4),a
+MD_ROM 0000a8 21e600 move    b,y0
+MD_ROM 0000a9 0c1c06 asr     #$3,a,a
+MD_ROM 0000aa 202a1b clr     b               ifeq
+MD_ROM 0000ab 5e5c00 move    a,y:(r4)+
+MD_ROM 0000ac 5f5c00 move    b,y:(r4)+
+MD_ROM 0000ad 0216ff move    y:(r6+$5),b
+MD_ROM 0000ae 0c1c87 asr     #$3,b,b
+MD_ROM 0000af 44f410 add     b,a             #>$7ff,x0
+MD_ROM 0000b1 330b45 cmp     x0,a            #$b,r3
+MD_ROM 0000b2 027040 tgt     x0,a
+MD_ROM 0000b3 657000 move    r5,x:>$ff
+MD_ROM 0000b5 5e5c51 tfr     y0,a            a,y:(r4)+
+MD_ROM 0000b6 0140cd cmp     #>$7ef,b
+MD_ROM 0000b8 202113 clr     a               ifge
+MD_ROM 0000b9 69dc00 move    y:(r4)+,r1
+MD_ROM 0000ba 5e5400 move    a,y:(r4)-
+MD_ROM 0000bb 05f421 move    #>$7fff,m1
+MD_ROM 0000bd 0206fe move    y:(r6+$1),a
+MD_ROM 0000be 0c1c06 asr     #$3,a,a
+MD_ROM 0000bf 0206bf move    y:(r6+$0),b
+MD_ROM 0000c0 21d900 move    a,n1
+MD_ROM 0000c1 0c1d93 asl     #$9,b,b
+MD_ROM 0000c2 2e8000 move    #$80,a
+MD_ROM 0000c3 138910 add     b,a             x:(r1)+n1,x0    b,y1
+MD_ROM 0000c4 355000 move    #$50,r5
+MD_ROM 0000c5 14df00 move    a,x1            y:(r7)+,y0
+MD_ROM 0000c6 061080 do      #<$10,>$ce
+MD_ROM 0000c8 e0e9d0 mpy     y0,x0,a         x:(r1)+n1,x0    y:(r7)-,y0
+MD_ROM 0000c9 fc7bd8 mpy     y0,x0,b         b,x:(r3)+       y:(r7)+,y0
+MD_ROM 0000ca 21c6e4 mpy     -x1,y0,a        a,y0
+MD_ROM 0000cb 4edfb2 mac     y1,y0,a         y:(r7)+,y0
+MD_ROM 0000cc 1289ec mpy     -x1,y0,b        x:(r1)+n1,x0    b,y0
+MD_ROM 0000cd f87bba mac     y1,y0,b         a,x:(r3)+       y:(r7)+,y0
+MD_ROM 0000ce 204100 move    (r1)-n1
+MD_ROM 0000cf 575b00 move    b,x:(r3)+
+MD_ROM 0000d0 0461a0 move    m0,m1
+MD_ROM 0000d1 696400 move    r1,y:(r4)
+MD_ROM 0000d2 020eff move    y:(r6+$3),b
+MD_ROM 0000d3 0c1c8f asr     #$7,b,b
+MD_ROM 0000d4 020ebe move    y:(r6+$2),a
+MD_ROM 0000d5 21f200 move    b,r2
+MD_ROM 0000d6 0c1c06 asr     #$3,a,a
+MD_ROM 0000d7 0504a5 move    #$4,m5
+MD_ROM 0000d8 0a72c4 move    x:(r2+$143476),x0
+MD_ROM 0000da 0a72c5 move    x:(r2+$143576),x1
+MD_ROM 0000dc 218f40 add     x0,a            a1,b
+MD_ROM 0000dd 300800 move    #$8,r0
+MD_ROM 0000de 219168 add     x1,b            a1,r1
+MD_ROM 0000df 025eb7 move    y:(r6+$16),y1
+MD_ROM 0000e0 21b300 move    b1,r3
+MD_ROM 0000e1 475800 move    y1,x:(r0)+
+MD_ROM 0000e2 0256b7 move    y:(r6+$14),y1
+MD_ROM 0000e3 475800 move    y1,x:(r0)+
+MD_ROM 0000e4 0a71c4 move    x:(r1+$14221d),x0
+MD_ROM 0000e6 0a73c5 move    x:(r3+$142c76),x1
+MD_ROM 0000e8 20a4a0 mpy     x1,x0,a         x1,x0
+MD_ROM 0000e9 2000ac mpy     -x1,x0,b
+MD_ROM 0000ea 0140c4 sub     #>$400000,a
+MD_ROM 0000ec 5f5d2a asr     b               b,y:(r5)+
+MD_ROM 0000ed 5e5d18 add     a,b             a,y:(r5)+
+MD_ROM 0000ee 20003e neg     b
+MD_ROM 0000ef 020ebe move    y:(r6+$2),a
+MD_ROM 0000f0 0c1c06 asr     #$3,a,a
+MD_ROM 0000f1 21e600 move    b,y0
+MD_ROM 0000f2 0a72c4 move    x:(r2+$1434f6),x0
+MD_ROM 0000f4 0a72c5 move    x:(r2+$1435f6),x1
+MD_ROM 0000f6 218f40 add     x0,a            a1,b
+MD_ROM 0000f7 024ef7 move    y:(r6+$13),y1
+MD_ROM 0000f8 219268 add     x1,b            a1,r2
+MD_ROM 0000f9 475800 move    y1,x:(r0)+
+MD_ROM 0000fa 21b300 move    b1,r3
+MD_ROM 0000fb 024eb7 move    y:(r6+$12),y1
+MD_ROM 0000fc 0a72c4 move    x:(r2+$14221d),x0
+MD_ROM 0000fe 0a73c5 move    x:(r3+$142c76),x1
+MD_ROM 000100 20a4a4 mpy     -x1,x0,a        x1,x0
+MD_ROM 000101 3180a8 mpy     x1,x0,b         #$80,r1
+MD_ROM 000102 475800 move    y1,x:(r0)+
+MD_ROM 000103 22302a asr     b               r1,r0
+MD_ROM 000104 274000 move    #$40,y1
+MD_ROM 000105 575978 add     y1,b            b,x:(r1)+
+MD_ROM 000106 565918 add     a,b             a,x:(r1)+
+MD_ROM 000107 0c1e02 clb     b,a
+MD_ROM 000108 0c1e25 normf   a1,b
+MD_ROM 000109 475900 move    y1,x:(r1)+
+MD_ROM 00010a 21e459 tfr     y0,b            b,x0
+MD_ROM 00010b 0c1e25 normf   a1,b
+MD_ROM 00010c 0c1c87 asr     #$3,b,b
+MD_ROM 00010d 00feb9 andi    #$fe,ccr
+MD_ROM 00010e 061880 do      #<$18,>$111
+MD_ROM 000110 018048 div     x0,b
+MD_ROM 000111 212f00 move    b0,b
+MD_ROM 000112 44d83a asl     b               x:(r0)+,x0
+MD_ROM 000113 47ab00 move    x:$2b,y1
+MD_ROM 000114 024ea7 move    y1,y:(r6+$12)
+MD_ROM 000115 21e600 move    b,y0
+MD_ROM 000116 44d8d8 mpy     y0,x0,b         x:(r0)+,x0
+MD_ROM 000117 44d8d0 mpy     y0,x0,a         x:(r0)+,x0
+MD_ROM 000118 5f5dd8 mpy     y0,x0,b         b,y:(r5)+
+MD_ROM 000119 5e5d00 move    a,y:(r5)+
+MD_ROM 00011a 5f5d00 move    b,y:(r5)+
+MD_ROM 00011b 47aa00 move    x:$2a,y1
+MD_ROM 00011c 024ee7 move    y1,y:(r6+$13)
+MD_ROM 00011d 300800 move    #$8,r0
+MD_ROM 00011e 70f400 move    #>$fffffd,n0
+MD_ROM 000120 320900 move    #$9,r2
+MD_ROM 000121 0256be move    y:(r6+$14),a
+MD_ROM 000122 0256f8 move    y:(r6+$15),a0
+MD_ROM 000123 f0b800 move    x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 000124 f5b8d2 mac     y0,x0,a         x:(r0)+,x1      y:(r5)+,y1
+MD_ROM 000125 57e200 move    x:(r2),b
+MD_ROM 000126 062080 do      #<$20,>$12f
+MD_ROM 000128 575af2 mac     y1,x1,a         b,x:(r2)+
+MD_ROM 000129 f0b8f2 mac     y1,x1,a         x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 00012a f0b8d2 mac     y0,x0,a         x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 00012b f0a8d2 mac     y0,x0,a         x:(r0)+n0,x0    y:(r5)+,y0
+MD_ROM 00012c f0b8d2 mac     y0,x0,a         x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 00012d f5b809 tfr     a,b             x:(r0)+,x1      y:(r5)+,y1
+MD_ROM 00012e 21c5d2 mac     y0,x0,a         a,x1
+MD_ROM 00012f 575200 move    b,x:(r2)-
+MD_ROM 000130 0256af move    b,y:(r6+$14)
+MD_ROM 000131 0256e9 move    b0,y:(r6+$15)
+MD_ROM 000132 44e200 move    x:(r2),x0
+MD_ROM 000133 025ea4 move    x0,y:(r6+$16)
+MD_ROM 000134 0465a0 move    m0,m5
+MD_ROM 000135 0b76d2 move    y:(r6+$26),r2
+MD_ROM 000137 0296be move    y:(r6+$24),a
+MD_ROM 000138 0a72c4 move    x:(r2+$141f00),x0
+MD_ROM 00013a 0a72c5 move    x:(r2+$141f80),x1
+MD_ROM 00013c 218f40 add     x0,a            a1,b
+MD_ROM 00013d 219368 add     x1,b            a1,r3
+MD_ROM 00013e 21b200 move    b1,r2
+MD_ROM 00013f 0a73c5 move    x:(r3+$1402aa),x1
+MD_ROM 000141 0a72c7 move    x:(r2+$141700),y1
+MD_ROM 000143 20e4f0 mpy     y1,x1,a         y1,x0
+MD_ROM 000144 2000cc mpy     -x0,y1,b
+MD_ROM 000145 63f400 move    #>$6,r3
+MD_ROM 000147 21e532 asl     a               b,x1
+MD_ROM 000148 0140c0 add     #>$800000,a
+MD_ROM 00014a 0266b7 move    y:(r6+$18),y1
+MD_ROM 00014b 475b00 move    y1,x:(r3)+
+MD_ROM 00014c 21c460 add     x1,a            a,x0
+MD_ROM 00014d 200036 neg     a
+MD_ROM 00014e 443500 move    x0,x:$35
+MD_ROM 00014f 02aef6 move    y:(r6+$2b),y0
+MD_ROM 000150 21e45c sub     y0,b            b,x0
+MD_ROM 000151 02aee4 move    x0,y:(r6+$2b)
+MD_ROM 000152 463600 move    y0,x:$36
+MD_ROM 000153 02b6b7 move    y:(r6+$2c),y1
+MD_ROM 000154 21c474 sub     y1,a            a,x0
+MD_ROM 000155 02b6a4 move    x0,y:(r6+$2c)
+MD_ROM 000156 473700 move    y1,x:$37
+MD_ROM 000157 573200 move    b,x:$32
+MD_ROM 000158 563300 move    a,x:$33
+MD_ROM 000159 56b500 move    x:$35,a
+MD_ROM 00015a 02aeb5 move    y:(r6+$2a),x1
+MD_ROM 00015b 21c464 sub     x1,a            a,x0
+MD_ROM 00015c 02aea4 move    x0,y:(r6+$2a)
+MD_ROM 00015d 453800 move    x1,x:$38
+MD_ROM 00015e 563400 move    a,x:$34
+MD_ROM 00015f 348000 move    #$80,r4
+MD_ROM 000160 35a000 move    #$a0,r5
+MD_ROM 000161 37c000 move    #$c0,r7
+MD_ROM 000162 60f400 move    #>$648,r0
+MD_ROM 000164 0296be move    y:(r6+$24),a
+MD_ROM 000165 02a6ff move    y:(r6+$29),b
+MD_ROM 000166 200005 cmp     b,a
+MD_ROM 000167 051403 bge     func_00016a
+MD_ROM 000168 60f400 move    #>$668,r0
+MD_ROM 00016a 56b600 move    x:$36,a
+MD_ROM 00016b 57b700 move    x:$37,b
+MD_ROM 00016c 46b200 move    x:$32,y0
+MD_ROM 00016d 47b300 move    x:$33,y1
+MD_ROM 00016e 221100 move    r0,r1
+MD_ROM 00016f 44d800 move    x:(r0)+,x0
+MD_ROM 000170 062080 do      #<$20,>$174
+MD_ROM 000172 5e5cd2 mac     y0,x0,a         a,y:(r4)+
+MD_ROM 000173 b3b8ca mac     x0,y1,b         x:(r0)+,x0      b,y:(r5)+
+MD_ROM 000174 56b800 move    x:$38,a
+MD_ROM 000175 45b400 move    x:$34,x1
+MD_ROM 000176 44d900 move    x:(r1)+,x0
+MD_ROM 000177 062080 do      #<$20,>$17a
+MD_ROM 000179 b2f9a2 mac     x1,x0,a         x:(r1)+,x0      a,y:(r7)+
+MD_ROM 00017a 300600 move    #$6,r0
+MD_ROM 00017b 310800 move    #$8,r1
+MD_ROM 00017c 348000 move    #$80,r4
+MD_ROM 00017d 35a000 move    #$a0,r5
+MD_ROM 00017e 37c000 move    #$c0,r7
+MD_ROM 00017f 025ef4 move    y:(r6+$17),x0
+MD_ROM 000180 445b00 move    x0,x:(r3)+
+MD_ROM 000181 208e00 move    x0,a
+MD_ROM 000182 029ef8 move    y:(r6+$27),a0
+MD_ROM 000183 0236b4 move    y:(r6+$c),x0
+MD_ROM 000184 445b00 move    x0,x:(r3)+
+MD_ROM 000185 022eb4 move    y:(r6+$a),x0
+MD_ROM 000186 445b00 move    x0,x:(r3)+
+MD_ROM 000187 208f00 move    x0,b
+MD_ROM 000188 022ef9 move    y:(r6+$b),b0
+MD_ROM 000189 320800 move    #$8,r2
+MD_ROM 00018a c09800 move    x:(r0)+,x0      y:(r4),y0
+MD_ROM 00018b c0f8d2 mac     y0,x0,a         x:(r0)+,x0      y:(r7),y0
+MD_ROM 00018c 062080 do      #<$20,>$196
+MD_ROM 00018e c0b0d2 mac     y0,x0,a         x:(r0)-,x0      y:(r5),y0
+MD_ROM 00018f f099d2 mac     y0,x0,a         x:(r1)+,x0      y:(r4)+,y0
+MD_ROM 000190 f0f9da mac     y0,x0,b         x:(r1)+,x0      y:(r7)+,y0
+MD_ROM 000191 485a00 move    a,l:(r2)+
+MD_ROM 000192 f0b1da mac     y0,x0,b         x:(r1)-,x0      y:(r5)+,y0
+MD_ROM 000193 c098da mac     y0,x0,b         x:(r0)+,x0      y:(r4),y0
+MD_ROM 000194 c0f8d2 mac     y0,x0,a         x:(r0)+,x0      y:(r7),y0
+MD_ROM 000195 495b00 move    b,l:(r3)+
+MD_ROM 000196 48fb00 move    l:-(r3),a
+MD_ROM 000197 47fb00 move    x:-(r3),y1
+MD_ROM 000198 0236a7 move    y1,y:(r6+$c)
+MD_ROM 000199 022eac move    a1,y:(r6+$a)
+MD_ROM 00019a 022ee8 move    a0,y:(r6+$b)
+MD_ROM 00019b 48fa00 move    l:-(r2),a
+MD_ROM 00019c 47fa00 move    x:-(r2),y1
+MD_ROM 00019d 0266a7 move    y1,y:(r6+$18)
+MD_ROM 00019e 025eec move    a1,y:(r6+$17)
+MD_ROM 00019f 029ee8 move    a0,y:(r6+$27)
+MD_ROM 0001a0 0b76d2 move    y:(r6+$23),r2
+MD_ROM 0001a2 028ebe move    y:(r6+$22),a
+MD_ROM 0001a3 0a72c4 move    x:(r2+$141f00),x0
+MD_ROM 0001a5 0a72c5 move    x:(r2+$141f80),x1
+MD_ROM 0001a7 218f40 add     x0,a            a1,b
+MD_ROM 0001a8 300000 move    #$0,r0
+MD_ROM 0001a9 219168 add     x1,b            a1,r1
+MD_ROM 0001aa 026ef5 move    y:(r6+$1b),x1
+MD_ROM 0001ab 455800 move    x1,x:(r0)+
+MD_ROM 0001ac 21b200 move    b1,r2
+MD_ROM 0001ad 0a71c5 move    x:(r1+$1402aa),x1
+MD_ROM 0001af 0a72c7 move    x:(r2+$141700),y1
+MD_ROM 0001b1 20e4f0 mpy     y1,x1,a         y1,x0
+MD_ROM 0001b2 2000cc mpy     -x0,y1,b
+MD_ROM 0001b3 21c532 asl     a               a,x1
+MD_ROM 0001b4 200014 sub     b,a
+MD_ROM 0001b5 0140c4 sub     #>$800000,a
+MD_ROM 0001b7 0c1c06 asr     #$3,a,a
+MD_ROM 0001b8 563c00 move    a,x:$3c
+MD_ROM 0001b9 20ae00 move    x1,a
+MD_ROM 0001ba 0140c0 add     #>$c00000,a
+MD_ROM 0001bc 02bef6 move    y:(r6+$2f),y0
+MD_ROM 0001bd 21e45c sub     y0,b            b,x0
+MD_ROM 0001be 02bee4 move    x0,y:(r6+$2f)
+MD_ROM 0001bf 463600 move    y0,x:$36
+MD_ROM 0001c0 02beb7 move    y:(r6+$2e),y1
+MD_ROM 0001c1 21c474 sub     y1,a            a,x0
+MD_ROM 0001c2 02bea4 move    x0,y:(r6+$2e)
+MD_ROM 0001c3 473700 move    y1,x:$37
+MD_ROM 0001c4 573200 move    b,x:$32
+MD_ROM 0001c5 563300 move    a,x:$33
+MD_ROM 0001c6 35a000 move    #$a0,r5
+MD_ROM 0001c7 37c000 move    #$c0,r7
+MD_ROM 0001c8 61f400 move    #>$648,r1
+MD_ROM 0001ca 028ebe move    y:(r6+$22),a
+MD_ROM 0001cb 02b6ff move    y:(r6+$2d),b
+MD_ROM 0001cc 200005 cmp     b,a
+MD_ROM 0001cd 051403 bge     func_0001d0
+MD_ROM 0001ce 61f400 move    #>$668,r1
+MD_ROM 0001d0 56b600 move    x:$36,a
+MD_ROM 0001d1 57b700 move    x:$37,b
+MD_ROM 0001d2 46b200 move    x:$32,y0
+MD_ROM 0001d3 47b300 move    x:$33,y1
+MD_ROM 0001d4 223200 move    r1,r2
+MD_ROM 0001d5 44d900 move    x:(r1)+,x0
+MD_ROM 0001d6 062080 do      #<$20,>$1da
+MD_ROM 0001d8 5e5dd2 mac     y0,x0,a         a,y:(r5)+
+MD_ROM 0001d9 b3f9ca mac     x0,y1,b         x:(r1)+,x0      b,y:(r7)+
+MD_ROM 0001da 56bc00 move    x:$3c,a
+MD_ROM 0001db 02c6b7 move    y:(r6+$30),y1
+MD_ROM 0001dc 21c474 sub     y1,a            a,x0
+MD_ROM 0001dd 02c6a4 move    x0,y:(r6+$30)
+MD_ROM 0001de 20ef00 move    y1,b
+MD_ROM 0001df 21c736 neg     a               a,y1
+MD_ROM 0001e0 200032 asl     a
+MD_ROM 0001e1 376000 move    #$60,r7
+MD_ROM 0001e2 21c601 tfr     b,a             a,y0
+MD_ROM 0001e3 200036 neg     a
+MD_ROM 0001e4 200032 asl     a
+MD_ROM 0001e5 44da00 move    x:(r2)+,x0
+MD_ROM 0001e6 062080 do      #<$20,>$1ea
+MD_ROM 0001e8 5f5fca mac     x0,y1,b         b,y:(r7)+
+MD_ROM 0001e9 b2fad2 mac     y0,x0,a         x:(r2)+,x0      a,y:(r7)+
+MD_ROM 0001ea 023ef4 move    y:(r6+$f),x0
+MD_ROM 0001eb 0246f5 move    y:(r6+$11),x1
+MD_ROM 0001ec 0266ff move    y:(r6+$19),b
+MD_ROM 0001ed 0236fe move    y:(r6+$d),a
+MD_ROM 0001ee 026eb9 move    y:(r6+$1a),b0
+MD_ROM 0001ef 023eb8 move    y:(r6+$e),a0
+MD_ROM 0001f0 575800 move    b,x:(r0)+
+MD_ROM 0001f1 445800 move    x0,x:(r0)+
+MD_ROM 0001f2 565800 move    a,x:(r0)+
+MD_ROM 0001f3 455800 move    x1,x:(r0)+
+MD_ROM 0001f4 0246b5 move    y:(r6+$10),x1
+MD_ROM 0001f5 456000 move    x1,x:(r0)
+MD_ROM 0001f6 300200 move    #$2,r0
+MD_ROM 0001f7 70f400 move    #>$fffffd,n0
+MD_ROM 0001f9 310000 move    #$0,r1
+MD_ROM 0001fa 231900 move    n0,n1
+MD_ROM 0001fb 320400 move    #$4,r2
+MD_ROM 0001fc 330200 move    #$2,r3
+MD_ROM 0001fd 35a000 move    #$a0,r5
+MD_ROM 0001fe 37c000 move    #$c0,r7
+MD_ROM 0001ff 45a500 move    x:$25,x1
+MD_ROM 000200 0246a5 move    x1,y:(r6+$10)
+MD_ROM 000201 45a400 move    x:$24,x1
+MD_ROM 000202 0246e5 move    x1,y:(r6+$11)
+MD_ROM 000203 346000 move    #$60,r4
+MD_ROM 000204 c0b800 move    x:(r0)+,x0      y:(r5),y0
+MD_ROM 000205 c0f8d2 mac     y0,x0,a         x:(r0)+,x0      y:(r7),y0
+MD_ROM 000206 2000d2 mac     y0,x0,a
+MD_ROM 000207 062080 do      #<$20,>$215
+MD_ROM 000209 f198d2 mac     y0,x0,a         x:(r0)+,x0      y:(r4)+,y1
+MD_ROM 00020a c098c2 mac     x0,y1,a         x:(r0)+,x0      y:(r4),y0
+MD_ROM 00020b 44c8d2 mac     y0,x0,a         x:(r0)+n0,x0
+MD_ROM 00020c f0b9c2 mac     x0,y1,a         x:(r1)+,x0      y:(r5)+,y0
+MD_ROM 00020d f0f9da mac     y0,x0,b         x:(r1)+,x0      y:(r7)+,y0
+MD_ROM 00020e 485ada mac     y0,x0,b         a,l:(r2)+
+MD_ROM 00020f 44d9da mac     y0,x0,b         x:(r1)+,x0
+MD_ROM 000210 f099ca mac     x0,y1,b         x:(r1)+,x0      y:(r4)+,y0
+MD_ROM 000211 44c9da mac     y0,x0,b         x:(r1)+n1,x0
+MD_ROM 000212 c0b8ca mac     x0,y1,b         x:(r0)+,x0      y:(r5),y0
+MD_ROM 000213 c0f8d2 mac     y0,x0,a         x:(r0)+,x0      y:(r7),y0
+MD_ROM 000214 495bd2 mac     y0,x0,a         b,l:(r3)+
+MD_ROM 000215 42fa00 move    l:-(r2),x
+MD_ROM 000216 0236e5 move    x1,y:(r6+$d)
+MD_ROM 000217 023ea4 move    x0,y:(r6+$e)
+MD_ROM 000218 44fa00 move    x:-(r2),x0
+MD_ROM 000219 023ee4 move    x0,y:(r6+$f)
+MD_ROM 00021a 42fa00 move    l:-(r2),x
+MD_ROM 00021b 0266e5 move    x1,y:(r6+$19)
+MD_ROM 00021c 026ea4 move    x0,y:(r6+$1a)
+MD_ROM 00021d 44fa00 move    x:-(r2),x0
+MD_ROM 00021e 026ee4 move    x0,y:(r6+$1b)
+MD_ROM 00021f 040ec5 lua     (r6+$1c),r5
+MD_ROM 000220 22b700 move    r5,r7
+MD_ROM 000221 021efe move    y:(r6+$7),a
+MD_ROM 000222 0140c0 add     #>$4000,a
+MD_ROM 000224 5fdd00 move    y:(r5)+,b
+MD_ROM 000225 11dd00 move    a,x0            y:(r5)+,y1
+MD_ROM 000226 44f480 mpy     x0,x0,a         #>$10,x0
+MD_ROM 000228 016084 sub     #<$20,a
+MD_ROM 000229 0c1d04 asl     #$2,a,a
+MD_ROM 00022a 340240 add     x0,a            #$2,r4
+MD_ROM 00022b 21c571 tfr     y1,a            a,x1
+MD_ROM 00022c 062080 do      #<$20,>$232
+MD_ROM 00022e 46e448 add     x0,b            x:(r4),y0
+MD_ROM 00022f 5e5c6d cmp     x1,b            a,y:(r4)+
+MD_ROM 000230 202151 tfr     y0,a            ifge
+MD_ROM 000231 20216c sub     x1,b            ifge
+MD_ROM 000232 5e5c00 move    a,y:(r4)+
+MD_ROM 000233 5f5f00 move    b,y:(r7)+
+MD_ROM 000234 60f400 move    #>$143777,r0
+MD_ROM 000236 0226bf move    y:(r6+$8),b
+MD_ROM 000237 0c1c8d asr     #$6,b,b
+MD_ROM 000238 340300 move    #$3,r4
+MD_ROM 000239 21f800 move    b,n0
+MD_ROM 00023a 5e5f00 move    a,y:(r7)+
+MD_ROM 00023b 229100 move    r4,r1
+MD_ROM 00023c 323c00 move    #$3c,r2
+MD_ROM 00023d 45e800 move    x:(r0+n0),x1
+MD_ROM 00023e 60f400 move    #>$143878,r0
+MD_ROM 000240 61f000 move    x:>$ff,r1
+MD_ROM 000242 455a00 move    x1,x:(r2)+
+MD_ROM 000243 45e800 move    x:(r0+n0),x1
+MD_ROM 000244 0141e8 mpyi    #>$7fdf3b,x1,b
+MD_ROM 000246 4edd00 move    y:(r5)+,y0
+MD_ROM 000247 5f5f00 move    b,y:(r7)+
+MD_ROM 000248 45f400 move    #>$ffbe77,x1
+MD_ROM 00024a 4cdd00 move    y:(r5)+,x0
+MD_ROM 00024b f63200 move    x1,x:(r2)-      y:(r5)+,a
+MD_ROM 00024c 58dd00 move    y:(r5)+,a0
+MD_ROM 00024d f59a00 move    x:(r2)+,x1      y:(r4)+,y1
+MD_ROM 00024e 1792f8 mpy     y1,x1,b         x:(r2)-,x1      b,y1
+MD_ROM 00024f 0c1d93 asl     #$9,b,b
+MD_ROM 000250 21c4d6 mac     -y0,x0,a        a,x0
+MD_ROM 000251 21e4a2 mac     x1,x0,a         b,x0
+MD_ROM 000252 f49ac2 mac     x0,y1,a         x:(r2)+,x1      y:(r4)+,y0
+MD_ROM 000253 061f80 do      #<$1f,>$25a
+MD_ROM 000255 45d2e8 mpy     x1,y0,b         x:(r2)-,x1
+MD_ROM 000256 0c1d93 asl     #$9,b,b
+MD_ROM 000257 1819c6 mac     -x0,y1,a        a,x:(r1)+       a,y0
+MD_ROM 000258 21e4e2 mac     x1,y0,a         b,x0
+MD_ROM 000259 f49ac2 mac     x0,y1,a         x:(r2)+,x1      y:(r4)+,y0
+MD_ROM 00025a 5f5f00 move    b,y:(r7)+
+MD_ROM 00025b 5e5f00 move    a,y:(r7)+
+MD_ROM 00025c 585f00 move    a0,y:(r7)+
+MD_ROM 00025d 565900 move    a,x:(r1)+
+MD_ROM 00025e 062080 do      #<$20,>$26f
+MD_ROM 000260 000000 nop  
+MD_ROM 000261 000000 nop  
+MD_ROM 000262 000000 nop  
+MD_ROM 000263 000000 nop  
+MD_ROM 000264 000000 nop  
+MD_ROM 000265 000000 nop  
+MD_ROM 000266 000000 nop  
+MD_ROM 000267 000000 nop  
+MD_ROM 000268 000000 nop  
+MD_ROM 000269 000000 nop  
+MD_ROM 00026a 000000 nop  
+MD_ROM 00026b 000000 nop  
+MD_ROM 00026c 000000 nop  
+MD_ROM 00026d 000000 nop  
+MD_ROM 00026e 000000 nop  
+MD_ROM 00026f 0c006f jmp     int_00006f
+MD_ROM 000270 60f400 move    #>$180,r0
+MD_ROM 000272 61f400 move    #>$688,r1
+MD_ROM 000274 064080 do      #<$40,>$278
+MD_ROM 000276 44d800 move    x:(r0)+,x0
+MD_ROM 000277 445900 move    x0,x:(r1)+
+MD_ROM 000278 08f4a4 movep   #>$e5a50,x:<<$ffffe4
+MD_ROM 00027a 08f4a6 movep   #>$ffffbc,x:<<$ffffe6
+MD_ROM 00027c 08f4a7 movep   #>$688,x:<<$ffffe7
+MD_ROM 00027e 08f4a5 movep   #>$3f,x:<<$ffffe5
+MD_ROM 000280 08f4a4 movep   #>$8e5a50,x:<<$ffffe4
+MD_ROM 000282 44f000 move    x:<<$ffffb8,x0
+MD_ROM 000284 56f000 move    x:<<$ffffbd,a
+MD_ROM 000286 014283 eor     #<$2,a
+MD_ROM 000287 567000 move    a,x:<<$ffffbd
+MD_ROM 000289 08f49c movep   #>$e52c4,x:<<$ffffdc
+MD_ROM 00028b 08f49e movep   #>$600,x:<<$ffffde
+MD_ROM 00028d 08f49f movep   #>$ffffb8,x:<<$ffffdf
+MD_ROM 00028f 08f49d movep   #>$1ff,x:<<$ffffdd
+MD_ROM 000291 08f49c movep   #>$8e52c4,x:<<$ffffdc
+MD_ROM 000293 00000c rts  
+MD_ROM 000294 44f400 move    #>$600,x0
+MD_ROM 000296 4c7000 move    x0,y:>$1c2
+MD_ROM 000298 4c7000 move    x0,y:>$1c3
+MD_ROM 00029a 4c7000 move    x0,y:>$1c4
+MD_ROM 00029c 44f400 move    #>$200,x0
+MD_ROM 00029e 4c7000 move    x0,y:>$1c7
+MD_ROM 0002a0 240000 move    #$0,x0
+MD_ROM 0002a1 4c7000 move    x0,y:>$1c5
+MD_ROM 0002a3 62f000 move    x:>$640,r2
+MD_ROM 0002a5 06c080 do      #<$c0,>$2a8
+MD_ROM 0002a7 445a00 move    x0,x:(r2)+
+MD_ROM 0002a8 350000 move    #$0,r5
+MD_ROM 0002a9 05f425 move    #>$ffffff,m5
+MD_ROM 0002ab 05f427 move    #>$ffffff,m7
+MD_ROM 0002ad 66f400 move    #>$6c8,r6
+MD_ROM 0002af 64f400 move    #>$100,r4
+MD_ROM 0002b1 3c0500 move    #$5,n4
+MD_ROM 0002b2 239e00 move    n4,n6
+MD_ROM 0002b3 05f424 move    #>$ffffff,m4
+MD_ROM 0002b5 60f400 move    #>$200,r0
+MD_ROM 0002b7 61f400 move    #>$3e0,r1
+MD_ROM 0002b9 05f420 move    #>$ffffff,m0
+MD_ROM 0002bb 67f400 move    #>$9e2,r7
+MD_ROM 0002bd 061080 do      #<$10,>$304
+MD_ROM 0002bf 56de00 move    x:(r6)+,a
+MD_ROM 0002c0 014685 cmp     #<$6,a
+MD_ROM 0002c1 05a41d beq     func_0002de
+MD_ROM 0002c2 44f400 move    #>$4,x0
+MD_ROM 0002c4 57f000 move    x:>$640,b
+MD_ROM 0002c6 014688 add     #<$6,b
+MD_ROM 0002c7 0bce60 btst    #$0,a
+MD_ROM 0002c8 20204c sub     x0,b            ifcc
+MD_ROM 0002c9 3a0622 asr     a               #$6,n2
+MD_ROM 0002ca 235b1c sub     a,b             n2,n3
+MD_ROM 0002cb 21b200 move    b1,r2
+MD_ROM 0002cc 21b300 move    b1,r3
+MD_ROM 0002cd 0204f4 move    y:(r4+$1),x0
+MD_ROM 0002ce 45d900 move    x:(r1)+,x1
+MD_ROM 0002cf 46caa0 mpy     x1,x0,a         x:(r2)+n2,y0
+MD_ROM 0002d0 061080 do      #<$10,>$2da
+MD_ROM 0002d2 0c1d08 asl     #$4,a,a
+MD_ROM 0002d3 45d950 add     y0,a            x:(r1)+,x1
+MD_ROM 0002d4 46caa8 mpy     x1,x0,b         x:(r2)+n2,y0
+MD_ROM 0002d5 564b00 move    a,x:(r3)+n3
+MD_ROM 0002d6 0c1d89 asl     #$4,b,b
+MD_ROM 0002d7 45d958 add     y0,b            x:(r1)+,x1
+MD_ROM 0002d8 46caa0 mpy     x1,x0,a         x:(r2)+n2,y0
+MD_ROM 0002d9 574b00 move    b,x:(r3)+n3
+MD_ROM 0002da 71f400 move    #>$ffffbf,n1
+MD_ROM 0002dc 204900 move    (r1)+n1
+MD_ROM 0002dd 050c44 bra     func_000301
+MD_ROM 0002de 44f400 move    #>$7ecccd,x0
+MD_ROM 0002e0 45f400 move    #>$7fffff,x1
+MD_ROM 0002e2 62f400 move    #>$148000,r2
+MD_ROM 0002e4 020cbe move    y:(r4+$2),a
+MD_ROM 0002e5 200045 cmp     x0,a
+MD_ROM 0002e6 027060 tgt     x1,a
+MD_ROM 0002e7 0c1c14 asr     #$a,a,a
+MD_ROM 0002e8 0204f4 move    y:(r4+$1),x0
+MD_ROM 0002e9 21da00 move    a,n2
+MD_ROM 0002ea 21db00 move    a,n3
+MD_ROM 0002eb 63f400 move    #>$14a000,r3
+MD_ROM 0002ed 45ea00 move    x:(r2+n2),x1
+MD_ROM 0002ee 2000a8 mpy     x1,x0,b
+MD_ROM 0002ef 45eb00 move    x:(r3+n3),x1
+MD_ROM 0002f0 21e6a0 mpy     x1,x0,a         b,y0
+MD_ROM 0002f1 020cf5 move    y:(r4+$3),x1
+MD_ROM 0002f2 21c400 move    a,x0
+MD_ROM 0002f3 5e5da0 mpy     x1,x0,a         a,y:(r5)+
+MD_ROM 0002f4 5f5de8 mpy     x1,y0,b         b,y:(r5)+
+MD_ROM 0002f5 0214b5 move    y:(r4+$4),x1
+MD_ROM 0002f6 5e5da0 mpy     x1,x0,a         a,y:(r5)+
+MD_ROM 0002f7 5f5de8 mpy     x1,y0,b         b,y:(r5)+
+MD_ROM 0002f8 5e5d00 move    a,y:(r5)+
+MD_ROM 0002f9 5f5d00 move    b,y:(r5)+
+MD_ROM 0002fa 44f400 move    #>$4eccd2,x0
+MD_ROM 0002fc 075f84 move    x0,p:(r7)+
+MD_ROM 0002fd 44f400 move    #>$f088da,x0
+MD_ROM 0002ff 075f84 move    x0,p:(r7)+
+MD_ROM 000300 041000 lua     (r0+$20),r0
+MD_ROM 000301 204c00 move    (r4)+n4
+MD_ROM 000302 000000 nop  
+MD_ROM 000303 000000 nop  
+MD_ROM 000304 382000 move    #$20,n0
+MD_ROM 000305 220f00 move    r0,b
+MD_ROM 000306 0140cd cmp     #>$200,b
+MD_ROM 000308 05a406 beq     func_00030e
+MD_ROM 000309 77f400 move    #>$fffffe,n7
+MD_ROM 00030b 44f400 move    #>$d498d2,x0
+MD_ROM 00030d 076f84 move    x0,p:(r7+n7)
+MD_ROM 00030e 0140cd cmp     #>$220,b
+MD_ROM 000310 057402 bgt     func_000312
+MD_ROM 000311 380000 move    #$0,n0
+MD_ROM 000312 44f400 move    #>$c1d06,x0
+MD_ROM 000314 075f84 move    x0,p:(r7)+
+MD_ROM 000315 44f400 move    #>$c1d87,x0
+MD_ROM 000317 075f84 move    x0,p:(r7)+
+MD_ROM 000318 44f400 move    #>$565913,x0
+MD_ROM 00031a 075f84 move    x0,p:(r7)+
+MD_ROM 00031b 077097 move    r7,p:>$9e1
+MD_ROM 00031d 44f400 move    #>$57591b,x0
+MD_ROM 00031f 075f84 move    x0,p:(r7)+
+MD_ROM 000320 240000 move    #$0,x0
+MD_ROM 000321 075f84 move    x0,p:(r7)+
+MD_ROM 000322 44f400 move    #>$c,x0
+MD_ROM 000324 075f84 move    x0,p:(r7)+
+MD_ROM 000325 220e00 move    r0,a
+MD_ROM 000326 0140c4 sub     #>$201,a
+MD_ROM 000328 22af00 move    r5,b
+MD_ROM 000329 04cea0 move    a,m0
+MD_ROM 00032a 01418c sub     #<$1,b
+MD_ROM 00032b 04cfa4 move    b,m4
+MD_ROM 00032c 340000 move    #$0,r4
+MD_ROM 00032d 60f400 move    #>$200,r0
+MD_ROM 00032f 61f400 move    #>$180,r1
+MD_ROM 000331 0d09de jsr     func_0009de
+MD_ROM 000332 340200 move    #$2,r4
+MD_ROM 000333 60f400 move    #>$200,r0
+MD_ROM 000335 61f400 move    #>$1c0,r1
+MD_ROM 000337 0d09de jsr     func_0009de
+MD_ROM 000338 340400 move    #$4,r4
+MD_ROM 000339 60f400 move    #>$200,r0
+MD_ROM 00033b 61f400 move    #>$600,r1
+MD_ROM 00033d 0d09de jsr     func_0009de
+MD_ROM 00033e 05f424 move    #>$ffffff,m4
+MD_ROM 000340 05f420 move    #>$ffffff,m0
+MD_ROM 000342 67f400 move    #>$150,r7
+MD_ROM 000344 051fa4 move    #$1f,m4
+MD_ROM 000345 051fa5 move    #$1f,m5
+MD_ROM 000346 022fff move    y:(r7+$b),b
+MD_ROM 000347 0237f5 move    y:(r7+$d),x1
+MD_ROM 000348 0207fe move    y:(r7+$1),a
+MD_ROM 000349 022ff4 move    y:(r7+$b),x0
+MD_ROM 00034a 200044 sub     x0,a
+MD_ROM 00034b 202268 add     x1,b            ifne
+MD_ROM 00034c 200022 asr     a
+MD_ROM 00034d 022fef move    b,y:(r7+$b)
+MD_ROM 00034e 0237ee move    a,y:(r7+$d)
+MD_ROM 00034f 0c1c9d asr     #$e,b,b
+MD_ROM 000350 30bf00 move    #$bf,r0
+MD_ROM 000351 212400 move    b0,x0
+MD_ROM 000352 21a500 move    b1,x1
+MD_ROM 000353 0227fe move    y:(r7+$9),a
+MD_ROM 000354 46f41b clr     b               #>$10011a,y0
+MD_ROM 000356 47f450 add     y0,a            #>$117c15,y1
+MD_ROM 000358 062080 do      #<$20,>$35e
+MD_ROM 00035a 565820 add     x,a             a,x:(r0)+
+MD_ROM 00035b 200075 cmp     y1,a
+MD_ROM 00035c 021050 tge     y0,a
+MD_ROM 00035d 200028 add     x,b
+MD_ROM 00035e 565854 sub     y0,a            a,x:(r0)+
+MD_ROM 00035f 0257af move    b,y:(r7+$14)
+MD_ROM 000360 0227ee move    a,y:(r7+$9)
+MD_ROM 000361 022fff move    y:(r7+$b),b
+MD_ROM 000362 0207be move    y:(r7+$0),a
+MD_ROM 000363 022fb4 move    y:(r7+$a),x0
+MD_ROM 000364 200044 sub     x0,a
+MD_ROM 000365 057403 bgt     func_000368
+MD_ROM 000366 059407 blt     func_00036d
+MD_ROM 000367 050c0a bra     func_000371
+MD_ROM 000368 200022 asr     a
+MD_ROM 000369 200018 add     a,b
+MD_ROM 00036a 0140c8 add     #>$200,b
+MD_ROM 00036c 050c05 bra     func_000371
+MD_ROM 00036d 0c1c04 asr     #$2,a,a
+MD_ROM 00036e 200018 add     a,b
+MD_ROM 00036f 0140cc sub     #>$200,b
+MD_ROM 000371 020ff4 move    y:(r7+$3),x0
+MD_ROM 000372 0257fe move    y:(r7+$15),a
+MD_ROM 000373 200040 add     x0,a
+MD_ROM 000374 218500 move    a1,x1
+MD_ROM 000375 0257e5 move    x1,y:(r7+$15)
+MD_ROM 000376 20ae00 move    x1,a
+MD_ROM 000377 200026 abs     a
+MD_ROM 000378 0140c4 sub     #>$400000,a
+MD_ROM 00037a 020fb5 move    y:(r7+$2),x1
+MD_ROM 00037b 21c400 move    a,x0
+MD_ROM 00037c 2000a0 mpy     x1,x0,a
+MD_ROM 00037d 46f418 add     a,b             #>$8000,y0
+MD_ROM 00037f 20005d cmp     y0,b
+MD_ROM 000380 021058 tge     y0,b
+MD_ROM 000381 022fbe move    y:(r7+$a),a
+MD_ROM 000382 0140c5 cmp     #>$a0,a
+MD_ROM 000384 057406 bgt     func_00038a
+MD_ROM 000385 0140cd cmp     #>$4000,b
+MD_ROM 000387 05740a bgt     func_000391
+MD_ROM 000388 022fff move    y:(r7+$b),b
+MD_ROM 000389 050c08 bra     func_000391
+MD_ROM 00038a 0140c5 cmp     #>$17a5b,a
+MD_ROM 00038c 059405 blt     func_000391
+MD_ROM 00038d 0140cd cmp     #>$4000,b
+MD_ROM 00038f 059402 blt     func_000391
+MD_ROM 000390 022fff move    y:(r7+$b),b
+MD_ROM 000391 0c1c9d asr     #$e,b,b
+MD_ROM 000392 0227fe move    y:(r7+$9),a
+MD_ROM 000393 212400 move    b0,x0
+MD_ROM 000394 21a500 move    b1,x1
+MD_ROM 000395 022fb7 move    y:(r7+$a),y1
+MD_ROM 000396 46f41b clr     b               #>$10011a,y0
+MD_ROM 000398 308070 add     y1,a            #$80,r0
+MD_ROM 000399 47f450 add     y0,a            #>$117c15,y1
+MD_ROM 00039b 200075 cmp     y1,a
+MD_ROM 00039c 059403 blt     func_00039f
+MD_ROM 00039d 0140c4 sub     #>$17afc,a
+MD_ROM 00039f 200020 add     x,a
+MD_ROM 0003a0 062080 do      #<$20,>$3a6
+MD_ROM 0003a2 200075 cmp     y1,a
+MD_ROM 0003a3 021050 tge     y0,a
+MD_ROM 0003a4 200028 add     x,b
+MD_ROM 0003a5 565820 add     x,a             a,x:(r0)+
+MD_ROM 0003a6 022fbe move    y:(r7+$a),a
+MD_ROM 0003a7 200010 add     b,a
+MD_ROM 0003a8 0257bf move    y:(r7+$14),b
+MD_ROM 0003a9 200014 sub     b,a
+MD_ROM 0003aa 308000 move    #$80,r0
+MD_ROM 0003ab 022fae move    a,y:(r7+$a)
+MD_ROM 0003ac 349e00 move    #$9e,r4
+MD_ROM 0003ad 35be00 move    #$be,r5
+MD_ROM 0003ae 72f400 move    #>$17afc,n2
+MD_ROM 0003b0 235b00 move    n2,n3
+MD_ROM 0003b1 221100 move    r0,r1
+MD_ROM 0003b2 061080 do      #<$10,>$3bc
+MD_ROM 0003b4 62d800 move    x:(r0)+,r2
+MD_ROM 0003b5 63d800 move    x:(r0)+,r3
+MD_ROM 0003b6 5e5c00 move    a,y:(r4)+
+MD_ROM 0003b7 5f5c00 move    b,y:(r4)+
+MD_ROM 0003b8 56e200 move    x:(r2),a
+MD_ROM 0003b9 000000 nop  
+MD_ROM 0003ba 57e300 move    x:(r3),b
+MD_ROM 0003bb 000000 nop  
+MD_ROM 0003bc 5e5c00 move    a,y:(r4)+
+MD_ROM 0003bd 5f5c00 move    b,y:(r4)+
+MD_ROM 0003be 061080 do      #<$10,>$3c6
+MD_ROM 0003c0 62d900 move    x:(r1)+,r2
+MD_ROM 0003c1 63d900 move    x:(r1)+,r3
+MD_ROM 0003c2 5e5d00 move    a,y:(r5)+
+MD_ROM 0003c3 5f5d00 move    b,y:(r5)+
+MD_ROM 0003c4 56ea00 move    x:(r2+n2),a
+MD_ROM 0003c5 57eb00 move    x:(r3+n3),b
+MD_ROM 0003c6 5e5d00 move    a,y:(r5)+
+MD_ROM 0003c7 5f5d00 move    b,y:(r5)+
+MD_ROM 0003c8 300000 move    #$0,r0
+MD_ROM 0003c9 61f400 move    #>$600,r1
+MD_ROM 0003cb 323f00 move    #$3f,r2
+MD_ROM 0003cc 051fa2 move    #$1f,m2
+MD_ROM 0003cd 0217b7 move    y:(r7+$4),y1
+MD_ROM 0003ce 4edc00 move    y:(r4)+,y0
+MD_ROM 0003cf 5fe200 move    y:(r2),b
+MD_ROM 0003d0 062080 do      #<$20,>$3d8
+MD_ROM 0003d2 44d9b0 mpy     y1,y0,a         x:(r1)+,x0
+MD_ROM 0003d3 5f5a40 add     x0,a            b,y:(r2)+
+MD_ROM 0003d4 4edd32 asl     a               y:(r5)+,y0
+MD_ROM 0003d5 44d9b8 mpy     y1,y0,b         x:(r1)+,x0
+MD_ROM 0003d6 5e5848 add     x0,b            a,y:(r0)+
+MD_ROM 0003d7 4edc3a asl     b               y:(r4)+,y0
+MD_ROM 0003d8 05f422 move    #>$ffffff,m2
+MD_ROM 0003da 5f6200 move    b,y:(r2)
+MD_ROM 0003db 62f400 move    #>$5fe,r2
+MD_ROM 0003dd 0227b4 move    y:(r7+$8),x0
+MD_ROM 0003de 4fdd00 move    y:(r5)+,y1
+MD_ROM 0003df 56da00 move    x:(r2)+,a
+MD_ROM 0003e0 57d200 move    x:(r2)-,b
+MD_ROM 0003e1 062180 do      #<$21,>$3e5
+MD_ROM 0003e3 f81ad0 mpy     y0,x0,a         a,x:(r2)+       y:(r4)+,y0
+MD_ROM 0003e4 fd3ac8 mpy     x0,y1,b         b,x:(r2)+       y:(r5)+,y1
+MD_ROM 0003e5 051fa0 move    #$1f,m0
+MD_ROM 0003e6 051fa1 move    #$1f,m1
+MD_ROM 0003e7 300000 move    #$0,r0
+MD_ROM 0003e8 312000 move    #$20,r1
+MD_ROM 0003e9 341f00 move    #$1f,r4
+MD_ROM 0003ea 353f00 move    #$3f,r5
+MD_ROM 0003eb 021ff4 move    y:(r7+$7),x0
+MD_ROM 0003ec 56f400 move    #>$7eb852,a
+MD_ROM 0003ee 200044 sub     x0,a
+MD_ROM 0003ef 4ed800 move    y:(r0)+,y0
+MD_ROM 0003f0 15d900 move    a,x1            y:(r1)+,y1
+MD_ROM 0003f1 5ee400 move    y:(r4),a
+MD_ROM 0003f2 5fe500 move    y:(r5),b
+MD_ROM 0003f3 062080 do      #<$20,>$3f9
+MD_ROM 0003f5 5e5ce0 mpy     x1,y0,a         a,y:(r4)+
+MD_ROM 0003f6 5f5df8 mpy     y1,x1,b         b,y:(r5)+
+MD_ROM 0003f7 4fd9c2 mac     x0,y1,a         y:(r1)+,y1
+MD_ROM 0003f8 4ed8da mac     y0,x0,b         y:(r0)+,y0
+MD_ROM 0003f9 5e5c00 move    a,y:(r4)+
+MD_ROM 0003fa 5f5d00 move    b,y:(r5)+
+MD_ROM 0003fb 0217f7 move    y:(r7+$5),y1
+MD_ROM 0003fc 0247be move    y:(r7+$10),a
+MD_ROM 0003fd 024fb6 move    y:(r7+$12),y0
+MD_ROM 0003fe 0247ff move    y:(r7+$11),b
+MD_ROM 0003ff 024ff4 move    y:(r7+$13),x0
+MD_ROM 000400 4d9f00 move    y:$1f,x1
+MD_ROM 000401 024fa5 move    x1,y:(r7+$12)
+MD_ROM 000402 4dbf00 move    y:$3f,x1
+MD_ROM 000403 024fe5 move    x1,y:(r7+$13)
+MD_ROM 000404 21c554 sub     y0,a            a,x1
+MD_ROM 000405 4ee4f6 mac     -y1,x1,a        y:(r4),y0
+MD_ROM 000406 200050 add     y0,a
+MD_ROM 000407 21e54c sub     x0,b            b,x1
+MD_ROM 000408 4ce5fe mac     -y1,x1,b        y:(r5),x0
+MD_ROM 000409 200048 add     x0,b
+MD_ROM 00040a 061f80 do      #<$1f,>$412
+MD_ROM 00040c 165c54 sub     y0,a            a,x1            a,y:(r4)+
+MD_ROM 00040d 4ee4f6 mac     -y1,x1,a        y:(r4),y0
+MD_ROM 00040e 200050 add     y0,a
+MD_ROM 00040f 1f5d4c sub     x0,b            b,x1            b,y:(r5)+
+MD_ROM 000410 4ce5fe mac     -y1,x1,b        y:(r5),x0
+MD_ROM 000411 200048 add     x0,b
+MD_ROM 000412 5e5c00 move    a,y:(r4)+
+MD_ROM 000413 5f5d00 move    b,y:(r5)+
+MD_ROM 000414 0247ae move    a,y:(r7+$10)
+MD_ROM 000415 0247ef move    b,y:(r7+$11)
+MD_ROM 000416 021fb6 move    y:(r7+$6),y0
+MD_ROM 000417 023fbe move    y:(r7+$e),a
+MD_ROM 000418 023fff move    y:(r7+$f),b
+MD_ROM 000419 4ce400 move    y:(r4),x0
+MD_ROM 00041a 4de500 move    y:(r5),x1
+MD_ROM 00041b 062080 do      #<$20,>$421
+MD_ROM 00041d 125cd2 mac     y0,x0,a         a,x0            a,y:(r4)+
+MD_ROM 00041e 1f5dea mac     x1,y0,b         b,x1            b,y:(r5)+
+MD_ROM 00041f 4ce4d6 mac     -y0,x0,a        y:(r4),x0
+MD_ROM 000420 4de5ee mac     -x1,y0,b        y:(r5),x1
+MD_ROM 000421 023fae move    a,y:(r7+$e)
+MD_ROM 000422 023fef move    b,y:(r7+$f)
+MD_ROM 000423 30c000 move    #$c0,r0
+MD_ROM 000424 340000 move    #$0,r4
+MD_ROM 000425 352000 move    #$20,r5
+MD_ROM 000426 221100 move    r0,r1
+MD_ROM 000427 061080 do      #<$10,>$42f
+MD_ROM 000429 62d800 move    x:(r0)+,r2
+MD_ROM 00042a 63d800 move    x:(r0)+,r3
+MD_ROM 00042b 5edc00 move    y:(r4)+,a
+MD_ROM 00042c 5fdc00 move    y:(r4)+,b
+MD_ROM 00042d 566200 move    a,x:(r2)
+MD_ROM 00042e 576300 move    b,x:(r3)
+MD_ROM 00042f 061080 do      #<$10,>$437
+MD_ROM 000431 62d900 move    x:(r1)+,r2
+MD_ROM 000432 63d900 move    x:(r1)+,r3
+MD_ROM 000433 5edd00 move    y:(r5)+,a
+MD_ROM 000434 5fdd00 move    y:(r5)+,b
+MD_ROM 000435 566a00 move    a,x:(r2+n2)
+MD_ROM 000436 576b00 move    b,x:(r3+n3)
+MD_ROM 000437 05f420 move    #>$ffffff,m0
+MD_ROM 000439 0461a0 move    m0,m1
+MD_ROM 00043a 0464a0 move    m0,m4
+MD_ROM 00043b 0465a0 move    m0,m5
+MD_ROM 00043c 05f425 move    #>$ffffff,m5
+MD_ROM 00043e 4cf013 clr     a               y:>$188,x0
+MD_ROM 000440 50f400 move    #>$143b40,a0
+MD_ROM 000442 0141c2 maci    #>$3,x0,a
+MD_ROM 000444 4df01b clr     b               y:>$187,x1
+MD_ROM 000446 51f400 move    #>$1439c0,b0
+MD_ROM 000448 0141ea maci    #>$3,x1,b
+MD_ROM 00044a 587000 move    a0,y:>$14397c
+MD_ROM 00044c 597000 move    b0,y:>$14397b
+MD_ROM 00044e 4ef000 move    y:>$18b,y0
+MD_ROM 000450 61f400 move    #>$600,r1
+MD_ROM 000452 60f400 move    #>$1c0,r0
+MD_ROM 000454 6af000 move    y:>$143979,r2
+MD_ROM 000456 05f422 move    #>$3fff,m2
+MD_ROM 000458 225400 move    r2,r4
+MD_ROM 000459 0464a2 move    m2,m4
+MD_ROM 00045a 63f400 move    #>$1c0,r3
+MD_ROM 00045c 44d900 move    x:(r1)+,x0
+MD_ROM 00045d 062080 do      #<$20,>$465
+MD_ROM 00045f 56db00 move    x:(r3)+,a
+MD_ROM 000460 44d9d2 mac     y0,x0,a         x:(r1)+,x0
+MD_ROM 000461 57db00 move    x:(r3)+,b
+MD_ROM 000462 44d9da mac     y0,x0,b         x:(r1)+,x0
+MD_ROM 000463 565a00 move    a,x:(r2)+
+MD_ROM 000464 575a00 move    b,x:(r2)+
+MD_ROM 000465 6a7000 move    r2,y:>$143979
+MD_ROM 000467 05f422 move    #>$ffffff,m2
+MD_ROM 000469 7cf000 move    y:>$18c,n4
+MD_ROM 00046b 62f400 move    #>$1c0,r2
+MD_ROM 00046d 204400 move    (r4)-n4
+MD_ROM 00046e 062080 do      #<$20,>$474
+MD_ROM 000470 4edc00 move    y:(r4)+,y0
+MD_ROM 000471 4fdc00 move    y:(r4)+,y1
+MD_ROM 000472 465a00 move    y0,x:(r2)+
+MD_ROM 000473 475a00 move    y1,x:(r2)+
+MD_ROM 000474 05f424 move    #>$ffffff,m4
+MD_ROM 000476 370000 move    #$0,r7
+MD_ROM 000477 264000 move    #$40,y0
+MD_ROM 000478 44d800 move    x:(r0)+,x0
+MD_ROM 000479 44d8d0 mpy     y0,x0,a         x:(r0)+,x0
+MD_ROM 00047a 44d8d2 mac     y0,x0,a         x:(r0)+,x0
+MD_ROM 00047b 061080 do      #<$10,>$481
+MD_ROM 00047d 44d8d8 mpy     y0,x0,b         x:(r0)+,x0
+MD_ROM 00047e b2f8da mac     y0,x0,b         x:(r0)+,x0      a,y:(r7)+
+MD_ROM 00047f 44d8d0 mpy     y0,x0,a         x:(r0)+,x0
+MD_ROM 000480 b3f8d2 mac     y0,x0,a         x:(r0)+,x0      b,y:(r7)+
+MD_ROM 000481 4df000 move    y:>$187,x1
+MD_ROM 000483 0141e8 mpyi    #>$66666,x1,b
+MD_ROM 000485 0c1da3 asl     #$11,b,b
+MD_ROM 000486 0140c8 add     #>$59999a,b
+MD_ROM 000488 64f400 move    #>$14398d,r4
+MD_ROM 00048a 21e700 move    b,y1
+MD_ROM 00048b 060580 do      #<$5,>$49f
+MD_ROM 00048d 0a74d1 move    x:(r4+$5),r1
+MD_ROM 00048f 0a74e1 move    x:(r4+$a),m1
+MD_ROM 000491 350000 move    #$0,r5
+MD_ROM 000492 46dc00 move    x:(r4)+,y0
+MD_ROM 000493 44e1b0 mpy     y1,y0,a         x:(r1),x0
+MD_ROM 000494 023c9f move    x:(r4+$e),b
+MD_ROM 000495 21c500 move    a,x1
+MD_ROM 000496 062080 do      #<$20,>$49c
+MD_ROM 000498 1e1941 tfr     x0,a            b,x:(r1)+       b,y0
+MD_ROM 000499 5fe5e6 mac     -x1,y0,a        y:(r5),b
+MD_ROM 00049a 44e100 move    x:(r1),x0
+MD_ROM 00049b 5e5daa mac     x1,x0,b         a,y:(r5)+
+MD_ROM 00049c 0a7491 move    r1,x:(r4+$4)
+MD_ROM 00049e 023c8f move    b,x:(r4+$e)
+MD_ROM 00049f 05f421 move    #>$ffffff,m1
+MD_ROM 0004a1 6af000 move    y:>$14397c,r2
+MD_ROM 0004a3 69f000 move    y:>$1439a7,r1
+MD_ROM 0004a5 05f421 move    #>$a86,m1
+MD_ROM 0004a7 5ef000 move    y:>$1439b4,a
+MD_ROM 0004a9 4ef000 move    y:>$1439ba,y0
+MD_ROM 0004ab 344000 move    #$40,r4
+MD_ROM 0004ac 4cda00 move    y:(r2)+,x0
+MD_ROM 0004ad 062080 do      #<$20,>$4b1
+MD_ROM 0004af 165cd2 mac     y0,x0,a         a,x1            a,y:(r4)+
+MD_ROM 0004b0 46d9a6 mac     -x1,x0,a        x:(r1)+,y0
+MD_ROM 0004b1 5c7000 move    a1,y:>$1439b4
+MD_ROM 0004b3 4e7000 move    y0,y:>$1439ba
+MD_ROM 0004b5 697000 move    r1,y:>$1439a7
+MD_ROM 0004b7 4cda00 move    y:(r2)+,x0
+MD_ROM 0004b8 69f000 move    y:>$1439a8,r1
+MD_ROM 0004ba 05f421 move    #>$9ae,m1
+MD_ROM 0004bc 5ef000 move    y:>$1439b5,a
+MD_ROM 0004be 4ef000 move    y:>$1439bb,y0
+MD_ROM 0004c0 346000 move    #$60,r4
+MD_ROM 0004c1 062080 do      #<$20,>$4c5
+MD_ROM 0004c3 165cd2 mac     y0,x0,a         a,x1            a,y:(r4)+
+MD_ROM 0004c4 46d9a6 mac     -x1,x0,a        x:(r1)+,y0
+MD_ROM 0004c5 5c7000 move    a1,y:>$1439b5
+MD_ROM 0004c7 4e7000 move    y0,y:>$1439bb
+MD_ROM 0004c9 697000 move    r1,y:>$1439a8
+MD_ROM 0004cb 4cda00 move    y:(r2)+,x0
+MD_ROM 0004cc 69f000 move    y:>$1439a9,r1
+MD_ROM 0004ce 05f421 move    #>$732,m1
+MD_ROM 0004d0 5ef000 move    y:>$1439b6,a
+MD_ROM 0004d2 4ef000 move    y:>$1439bc,y0
+MD_ROM 0004d4 348000 move    #$80,r4
+MD_ROM 0004d5 062080 do      #<$20,>$4d9
+MD_ROM 0004d7 165cd2 mac     y0,x0,a         a,x1            a,y:(r4)+
+MD_ROM 0004d8 46d9a6 mac     -x1,x0,a        x:(r1)+,y0
+MD_ROM 0004d9 5c7000 move    a1,y:>$1439b6
+MD_ROM 0004db 4e7000 move    y0,y:>$1439bc
+MD_ROM 0004dd 697000 move    r1,y:>$1439a9
+MD_ROM 0004df 4cda00 move    y:(r2)+,x0
+MD_ROM 0004e0 69f000 move    y:>$1439aa,r1
+MD_ROM 0004e2 05f421 move    #>$674,m1
+MD_ROM 0004e4 5ef000 move    y:>$1439b7,a
+MD_ROM 0004e6 4ef000 move    y:>$1439bd,y0
+MD_ROM 0004e8 34a000 move    #$a0,r4
+MD_ROM 0004e9 062080 do      #<$20,>$4ed
+MD_ROM 0004eb 165cd2 mac     y0,x0,a         a,x1            a,y:(r4)+
+MD_ROM 0004ec 46d9a6 mac     -x1,x0,a        x:(r1)+,y0
+MD_ROM 0004ed 5c7000 move    a1,y:>$1439b7
+MD_ROM 0004ef 4e7000 move    y0,y:>$1439bd
+MD_ROM 0004f1 697000 move    r1,y:>$1439aa
+MD_ROM 0004f3 330000 move    #$0,r3
+MD_ROM 0004f4 0501a3 move    #$1,m3
+MD_ROM 0004f5 3c2000 move    #$20,n4
+MD_ROM 0004f6 6cf000 move    y:>$1439b3,r4
+MD_ROM 0004f8 05f424 move    #>$7fff,m4
+MD_ROM 0004fa 69f000 move    y:>$1439ab,r1
+MD_ROM 0004fc 05f421 move    #>$7ff,m1
+MD_ROM 0004fe 5fcc00 move    y:(r4)+n4,b
+MD_ROM 0004ff 0c1ca9 asr     #$14,b,b
+MD_ROM 000500 6c7000 move    r4,y:>$1439b3
+MD_ROM 000502 21b900 move    b1,n1
+MD_ROM 000503 2d0000 move    #$0,b1
+MD_ROM 000504 20002a asr     b
+MD_ROM 000505 56f400 move    #>$7fffff,a
+MD_ROM 000507 212700 move    b0,y1
+MD_ROM 000508 204974 sub     y1,a            (r1)+n1
+MD_ROM 000509 05f424 move    #>$ffffff,m4
+MD_ROM 00050b 21c400 move    a,x0
+MD_ROM 00050c 4dda00 move    y:(r2)+,x1
+MD_ROM 00050d 455ba8 mpy     x1,x0,b         x1,x:(r3)+
+MD_ROM 00050e 2000f0 mpy     y1,x1,a
+MD_ROM 00050f 21e400 move    b,x0
+MD_ROM 000510 111b00 move    x0,x:(r3)+      a,y1
+MD_ROM 000511 5ef000 move    y:>$1439b8,a
+MD_ROM 000513 58f000 move    y:>$1439be,a0
+MD_ROM 000515 34c000 move    #$c0,r4
+MD_ROM 000516 45d900 move    x:(r1)+,x1
+MD_ROM 000517 061f80 do      #<$1f,>$51c
+MD_ROM 000519 8699a2 mac     x1,x0,a         x:(r1)+,x1      a,y:(r4)
+MD_ROM 00051a f09bf2 mac     y1,x1,a         x:(r3)+,x0      y:(r4)+,y0
+MD_ROM 00051b 44dbd6 mac     -y0,x0,a        x:(r3)+,x0
+MD_ROM 00051c 8681a2 mac     x1,x0,a         x:(r1),x1       a,y:(r4)
+MD_ROM 00051d f09bf2 mac     y1,x1,a         x:(r3)+,x0      y:(r4)+,y0
+MD_ROM 00051e 44dbd6 mac     -y0,x0,a        x:(r3)+,x0
+MD_ROM 00051f 204100 move    (r1)-n1
+MD_ROM 000520 587000 move    a0,y:>$1439be
+MD_ROM 000522 5c7000 move    a1,y:>$1439b8
+MD_ROM 000524 697000 move    r1,y:>$1439ab
+MD_ROM 000526 05f421 move    #>$3ff,m1
+MD_ROM 000528 69f000 move    y:>$1439ac,r1
+MD_ROM 00052a 5ef000 move    y:>$1439b9,a
+MD_ROM 00052c 204900 move    (r1)+n1
+MD_ROM 00052d 58f000 move    y:>$1439bf,a0
+MD_ROM 00052f 34e000 move    #$e0,r4
+MD_ROM 000530 45d900 move    x:(r1)+,x1
+MD_ROM 000531 061f80 do      #<$1f,>$536
+MD_ROM 000533 8699a2 mac     x1,x0,a         x:(r1)+,x1      a,y:(r4)
+MD_ROM 000534 f09bf2 mac     y1,x1,a         x:(r3)+,x0      y:(r4)+,y0
+MD_ROM 000535 44dbd6 mac     -y0,x0,a        x:(r3)+,x0
+MD_ROM 000536 8681a2 mac     x1,x0,a         x:(r1),x1       a,y:(r4)
+MD_ROM 000537 f09bf2 mac     y1,x1,a         x:(r3)+,x0      y:(r4)+,y0
+MD_ROM 000538 44dbd6 mac     -y0,x0,a        x:(r3)+,x0
+MD_ROM 000539 204100 move    (r1)-n1
+MD_ROM 00053a 587000 move    a0,y:>$1439bf
+MD_ROM 00053c 5c7000 move    a1,y:>$1439b9
+MD_ROM 00053e 697000 move    r1,y:>$1439ac
+MD_ROM 000540 05f423 move    #>$ffffff,m3
+MD_ROM 000542 05f421 move    #>$ffffff,m1
+MD_ROM 000544 68f000 move    y:>$14397b,r0
+MD_ROM 000546 0504a3 move    #$4,m3
+MD_ROM 000547 334000 move    #$40,r3
+MD_ROM 000548 0208b4 move    y:(r0+$2),x0
+MD_ROM 000549 0210f5 move    y:(r0+$5),x1
+MD_ROM 00054a 445b00 move    x0,x:(r3)+
+MD_ROM 00054b 455b00 move    x1,x:(r3)+
+MD_ROM 00054c 0208f4 move    y:(r0+$3),x0
+MD_ROM 00054d 0200f5 move    y:(r0+$1),x1
+MD_ROM 00054e 445b00 move    x0,x:(r3)+
+MD_ROM 00054f 455b00 move    x1,x:(r3)+
+MD_ROM 000550 4ce000 move    y:(r0),x0
+MD_ROM 000551 05f426 move    #>$ffffff,m6
+MD_ROM 000553 445b00 move    x0,x:(r3)+
+MD_ROM 000554 320000 move    #$0,r2
+MD_ROM 000555 308000 move    #$80,r0
+MD_ROM 000556 36e000 move    #$e0,r6
+MD_ROM 000557 34a000 move    #$a0,r4
+MD_ROM 000558 376000 move    #$60,r7
+MD_ROM 000559 354000 move    #$40,r5
+MD_ROM 00055a 4fd800 move    y:(r0)+,y1
+MD_ROM 00055b 44db00 move    x:(r3)+,x0
+MD_ROM 00055c f1dbc0 mpy     x0,y1,a         x:(r3)+,x0      y:(r6)+,y1
+MD_ROM 00055d 062080 do      #<$20,>$568
+MD_ROM 00055f f19bc6 mac     -x0,y1,a        x:(r3)+,x0      y:(r4)+,y1
+MD_ROM 000560 f1fbc6 mac     -x0,y1,a        x:(r3)+,x0      y:(r7)+,y1
+MD_ROM 000561 45db09 tfr     a,b             x:(r3)+,x1
+MD_ROM 000562 4fddc2 mac     x0,y1,a         y:(r5)+,y1
+MD_ROM 000563 44db32 asl     a               x:(r3)+,x0
+MD_ROM 000564 4fd8fa mac     y1,x1,b         y:(r0)+,y1
+MD_ROM 000565 565a3a asl     b               a,x:(r2)+
+MD_ROM 000566 f1dbc0 mpy     x0,y1,a         x:(r3)+,x0      y:(r6)+,y1
+MD_ROM 000567 575a00 move    b,x:(r2)+
+MD_ROM 000568 05f423 move    #>$ffffff,m3
+MD_ROM 00056a 68f000 move    y:>$14397b,r0
+MD_ROM 00056c 316000 move    #$60,r1
+MD_ROM 00056d 328000 move    #$80,r2
+MD_ROM 00056e 344000 move    #$40,r4
+MD_ROM 00056f 35a000 move    #$a0,r5
+MD_ROM 000570 44e000 move    x:(r0),x0
+MD_ROM 000571 0208d5 move    x:(r0+$3),x1
+MD_ROM 000572 4edc00 move    y:(r4)+,y0
+MD_ROM 000573 2000d0 mpy     y0,x0,a
+MD_ROM 000574 4fddd8 mpy     y0,x0,b         y:(r5)+,y1
+MD_ROM 000575 062080 do      #<$20,>$57b
+MD_ROM 000577 4edcf2 mac     y1,x1,a         y:(r4)+,y0
+MD_ROM 000578 4fddfe mac     -y1,x1,b        y:(r5)+,y1
+MD_ROM 000579 5659d0 mpy     y0,x0,a         a,x:(r1)+
+MD_ROM 00057a 575ad8 mpy     y0,x0,b         b,x:(r2)+
+MD_ROM 00057b 314000 move    #$40,r1
+MD_ROM 00057c 32a000 move    #$a0,r2
+MD_ROM 00057d 34c000 move    #$c0,r4
+MD_ROM 00057e 35e000 move    #$e0,r5
+MD_ROM 00057f 021094 move    x:(r0+$4),x0
+MD_ROM 000580 0210d5 move    x:(r0+$5),x1
+MD_ROM 000581 4edc00 move    y:(r4)+,y0
+MD_ROM 000582 2000d4 mpy     -y0,x0,a
+MD_ROM 000583 4fdddc mpy     -y0,x0,b        y:(r5)+,y1
+MD_ROM 000584 062080 do      #<$20,>$58a
+MD_ROM 000586 4edcf2 mac     y1,x1,a         y:(r4)+,y0
+MD_ROM 000587 4fddfe mac     -y1,x1,b        y:(r5)+,y1
+MD_ROM 000588 5659d4 mpy     -y0,x0,a        a,x:(r1)+
+MD_ROM 000589 575adc mpy     -y0,x0,b        b,x:(r2)+
+MD_ROM 00058a 31c000 move    #$c0,r1
+MD_ROM 00058b 32e000 move    #$e0,r2
+MD_ROM 00058c 346000 move    #$60,r4
+MD_ROM 00058d 358000 move    #$80,r5
+MD_ROM 00058e 0200d4 move    x:(r0+$1),x0
+MD_ROM 00058f 020895 move    x:(r0+$2),x1
+MD_ROM 000590 4edc00 move    y:(r4)+,y0
+MD_ROM 000591 2000d0 mpy     y0,x0,a
+MD_ROM 000592 4fddd8 mpy     y0,x0,b         y:(r5)+,y1
+MD_ROM 000593 062080 do      #<$20,>$599
+MD_ROM 000595 4edcf2 mac     y1,x1,a         y:(r4)+,y0
+MD_ROM 000596 4fddfe mac     -y1,x1,b        y:(r5)+,y1
+MD_ROM 000597 5659d0 mpy     y0,x0,a         a,x:(r1)+
+MD_ROM 000598 575ad8 mpy     y0,x0,b         b,x:(r2)+
+MD_ROM 000599 304000 move    #$40,r0
+MD_ROM 00059a 61f400 move    #>$1439a1,r1
+MD_ROM 00059c 62f400 move    #>$1439ad,r2
+MD_ROM 00059e 05f422 move    #>$ffffff,m2
+MD_ROM 0005a0 44f400 move    #>$155556,x0
+MD_ROM 0005a2 340000 move    #$0,r4
+MD_ROM 0005a3 060680 do      #<$6,>$5b4
+MD_ROM 0005a5 05da23 move    x:(r2)+,m3
+MD_ROM 0005a6 63e100 move    x:(r1),r3
+MD_ROM 0005a7 fc9800 move    x:(r0)+,b       y:(r4)+,y0
+MD_ROM 0005a8 2000da mac     y0,x0,b
+MD_ROM 0005a9 060f80 do      #<$f,>$5af
+MD_ROM 0005ab f89800 move    x:(r0)+,a       y:(r4)+,y0
+MD_ROM 0005ac 575bd2 mac     y0,x0,a         b,x:(r3)+
+MD_ROM 0005ad fc9800 move    x:(r0)+,b       y:(r4)+,y0
+MD_ROM 0005ae 565bda mac     y0,x0,b         a,x:(r3)+
+MD_ROM 0005af f89800 move    x:(r0)+,a       y:(r4)+,y0
+MD_ROM 0005b0 575bd2 mac     y0,x0,a         b,x:(r3)+
+MD_ROM 0005b1 340000 move    #$0,r4
+MD_ROM 0005b2 565b00 move    a,x:(r3)+
+MD_ROM 0005b3 635900 move    r3,x:(r1)+
+MD_ROM 0005b4 05f423 move    #>$ffffff,m3
+MD_ROM 0005b6 340000 move    #$0,r4
+MD_ROM 0005b7 5ef000 move    y:>$143987,a
+MD_ROM 0005b9 20001b clr     b
+MD_ROM 0005ba 47f400 move    #>$1062,y1
+MD_ROM 0005bc 46f400 move    #>$7fef9e,y0
+MD_ROM 0005be 062080 do      #<$20,>$5c5
+MD_ROM 0005c0 16dc00 move    a,x1            y:(r4)+,a
+MD_ROM 0005c1 200026 abs     a
+MD_ROM 0005c2 21c4e0 mpy     x1,y0,a         a,x0
+MD_ROM 0005c3 2000c2 mac     x0,y1,a
+MD_ROM 0005c4 200015 maxm    a,b
+MD_ROM 0005c5 5e7000 move    a,y:>$143987
+MD_ROM 0005c7 5ef000 move    y:>$143988,a
+MD_ROM 0005c9 5f7000 move    b,y:>$143988
+MD_ROM 0005cb 20001c sub     a,b
+MD_ROM 0005cc 5ef000 move    y:>$143989,a
+MD_ROM 0005ce 4ef000 move    y:>$18a,y0
+MD_ROM 0005d0 200055 cmp     y0,a
+MD_ROM 0005d1 059406 blt     func_0005d7
+MD_ROM 0005d2 44f400 move    #>$7ffff0,x0
+MD_ROM 0005d4 4c7000 move    x0,y:>$143989
+MD_ROM 0005d6 050c04 bra     func_0005da
+MD_ROM 0005d7 014180 add     #<$1,a
+MD_ROM 0005d8 5e7000 move    a,y:>$143989
+MD_ROM 0005da 5ef000 move    y:>$18a,a
+MD_ROM 0005dc 0140c5 cmp     #>$7fffff,a
+MD_ROM 0005de 05a40c beq     func_0005ea
+MD_ROM 0005df 0140cd cmp     #>$a8,b
+MD_ROM 0005e1 051406 bge     func_0005e7
+MD_ROM 0005e2 5ef000 move    y:>$143989,a
+MD_ROM 0005e4 200055 cmp     y0,a
+MD_ROM 0005e5 051413 bge     func_0005f8
+MD_ROM 0005e6 050c04 bra     func_0005ea
+MD_ROM 0005e7 270000 move    #$0,y1
+MD_ROM 0005e8 4f7000 move    y1,y:>$143989
+MD_ROM 0005ea 5ef000 move    y:>$14398a,a
+MD_ROM 0005ec 340000 move    #$0,r4
+MD_ROM 0005ed 44f409 tfr     a,b             #>$147ae,x0
+MD_ROM 0005ef 45f448 add     x0,b            #>$28f5c,x1
+MD_ROM 0005f1 061080 do      #<$10,>$5f5
+MD_ROM 0005f3 5e5c60 add     x1,a            a,y:(r4)+
+MD_ROM 0005f4 5f5c68 add     x1,b            b,y:(r4)+
+MD_ROM 0005f5 5e7000 move    a,y:>$14398a
+MD_ROM 0005f7 050c11 bra     func_000608
+MD_ROM 0005f8 4df000 move    y:>$14398a,x1
+MD_ROM 0005fa 46f461 tfr     x1,a            #>$7eb852,y0
+MD_ROM 0005fc 47f400 move    #>$7f5bc0,y1
+MD_ROM 0005fe 341f00 move    #$1f,r4
+MD_ROM 0005ff 051fa4 move    #$1f,m4
+MD_ROM 000600 061080 do      #<$10,>$605
+MD_ROM 000602 175ce0 mpy     x1,y0,a         a,x1            b,y:(r4)+
+MD_ROM 000603 4d5cf8 mpy     y1,x1,b         x1,y:(r4)+
+MD_ROM 000604 21c5e0 mpy     x1,y0,a         a,x1
+MD_ROM 000605 5f5c00 move    b,y:(r4)+
+MD_ROM 000606 5e7000 move    a,y:>$14398a
+MD_ROM 000608 340000 move    #$0,r4
+MD_ROM 000609 300000 move    #$0,r0
+MD_ROM 00060a 05f424 move    #>$ffffff,m4
+MD_ROM 00060c 221100 move    r0,r1
+MD_ROM 00060d f09800 move    x:(r0)+,x0      y:(r4)+,y0
+MD_ROM 00060e 062080 do      #<$20,>$614
+MD_ROM 000610 44d8d0 mpy     y0,x0,a         x:(r0)+,x0
+MD_ROM 000611 f098d8 mpy     y0,x0,b         x:(r0)+,x0      y:(r4)+,y0
+MD_ROM 000612 565900 move    a,x:(r1)+
+MD_ROM 000613 575900 move    b,x:(r1)+
+MD_ROM 000614 300000 move    #$0,r0
+MD_ROM 000615 310100 move    #$1,r1
+MD_ROM 000616 380200 move    #$2,n0
+MD_ROM 000617 231900 move    n0,n1
+MD_ROM 000618 324000 move    #$40,r2
+MD_ROM 000619 5ef000 move    y:>$143981,a
+MD_ROM 00061b 58f000 move    y:>$143982,a0
+MD_ROM 00061d 5ff000 move    y:>$143983,b
+MD_ROM 00061f 59f000 move    y:>$143984,b0
+MD_ROM 000621 274000 move    #$40,y1
+MD_ROM 000622 4df000 move    y:>$185,x1
+MD_ROM 000624 4cf000 move    y:>$143985,x0
+MD_ROM 000626 181ac6 mac     -x0,y1,a        a,x:(r2)+       a,y0
+MD_ROM 000627 44e0e6 mac     -x1,y0,a        x:(r0),x0
+MD_ROM 000628 2000c2 mac     x0,y1,a
+MD_ROM 000629 4cf000 move    y:>$143986,x0
+MD_ROM 00062b 02f896 move    x:(r0+$3e),y0
+MD_ROM 00062c 4e7000 move    y0,y:>$143985
+MD_ROM 00062e 02f8d6 move    x:(r0+$3f),y0
+MD_ROM 00062f 4e7000 move    y0,y:>$143986
+MD_ROM 000631 1e1ace mac     -x0,y1,b        b,x:(r2)+       b,y0
+MD_ROM 000632 44e1ee mac     -x1,y0,b        x:(r1),x0
+MD_ROM 000633 44c8ca mac     x0,y1,b         x:(r0)+n0,x0
+MD_ROM 000634 061f80 do      #<$1f,>$63c
+MD_ROM 000636 181ac6 mac     -x0,y1,a        a,x:(r2)+       a,y0
+MD_ROM 000637 44e0e6 mac     -x1,y0,a        x:(r0),x0
+MD_ROM 000638 44c9c2 mac     x0,y1,a         x:(r1)+n1,x0
+MD_ROM 000639 1e1ace mac     -x0,y1,b        b,x:(r2)+       b,y0
+MD_ROM 00063a 44e1ee mac     -x1,y0,b        x:(r1),x0
+MD_ROM 00063b 44c8ca mac     x0,y1,b         x:(r0)+n0,x0
+MD_ROM 00063c 5c7000 move    a1,y:>$143981
+MD_ROM 00063e 587000 move    a0,y:>$143982
+MD_ROM 000640 5d7000 move    b1,y:>$143983
+MD_ROM 000642 597000 move    b0,y:>$143984
+MD_ROM 000644 314000 move    #$40,r1
+MD_ROM 000645 300000 move    #$0,r0
+MD_ROM 000646 4ef000 move    y:>$186,y0
+MD_ROM 000648 5ef000 move    y:>$14397d,a
+MD_ROM 00064a 58f000 move    y:>$14397e,a0
+MD_ROM 00064c 5ff000 move    y:>$14397f,b
+MD_ROM 00064e 59f000 move    y:>$143980,b0
+MD_ROM 000650 45d900 move    x:(r1)+,x1
+MD_ROM 000651 062080 do      #<$20,>$657
+MD_ROM 000653 1918e2 mac     x1,y0,a         a,x:(r0)+       a,y1
+MD_ROM 000654 45d9b6 mac     -y1,y0,a        x:(r1)+,x1
+MD_ROM 000655 1f18ea mac     x1,y0,b         b,x:(r0)+       b,y1
+MD_ROM 000656 45d9be mac     -y1,y0,b        x:(r1)+,x1
+MD_ROM 000657 310000 move    #$0,r1
+MD_ROM 000658 223400 move    r1,r4
+MD_ROM 000659 5c7000 move    a1,y:>$14397d
+MD_ROM 00065b 587000 move    a0,y:>$14397e
+MD_ROM 00065d 5d7000 move    b1,y:>$14397f
+MD_ROM 00065f 597000 move    b0,y:>$143980
+MD_ROM 000661 4ef000 move    y:>$189,y0
+MD_ROM 000663 45d900 move    x:(r1)+,x1
+MD_ROM 000664 062080 do      #<$20,>$66a
+MD_ROM 000666 b799e8 mpy     x1,y0,b         x:(r1)+,x1      b,y:(r4)+
+MD_ROM 000667 0c1d89 asl     #$4,b,b
+MD_ROM 000668 b699e0 mpy     x1,y0,a         x:(r1)+,x1      a,y:(r4)+
+MD_ROM 000669 0c1d08 asl     #$4,a,a
+MD_ROM 00066a 5f5c00 move    b,y:(r4)+
+MD_ROM 00066b 5e5c00 move    a,y:(r4)+
+MD_ROM 00066c 340200 move    #$2,r4
+MD_ROM 00066d 63f400 move    #>$600,r3
+MD_ROM 00066f 61f400 move    #>$180,r1
+MD_ROM 000671 223200 move    r1,r2
+MD_ROM 000672 f29b00 move    x:(r3)+,x0      y:(r4)+,a
+MD_ROM 000673 45d940 add     x0,a            x:(r1)+,x1
+MD_ROM 000674 062080 do      #<$20,>$67c
+MD_ROM 000676 f39b60 add     x1,a            x:(r3)+,x0      y:(r4)+,b
+MD_ROM 000677 45d948 add     x0,b            x:(r1)+,x1
+MD_ROM 000678 565a00 move    a,x:(r2)+
+MD_ROM 000679 f29b68 add     x1,b            x:(r3)+,x0      y:(r4)+,a
+MD_ROM 00067a 45d940 add     x0,a            x:(r1)+,x1
+MD_ROM 00067b 575a00 move    b,x:(r2)+
+MD_ROM 00067c 5ef000 move    y:>$178,a
+MD_ROM 00067e 200003 tst     a
+MD_ROM 00067f 05b45d bmi     func_0006bc
+MD_ROM 000680 4cf000 move    y:>$177,x0
+MD_ROM 000682 56f400 move    #>$8000,a
+MD_ROM 000684 4df082 mac     x0,x0,a         y:>$176,x1
+MD_ROM 000686 2000a2 mac     x1,x0,a
+MD_ROM 000687 4ff000 move    y:>$178,y1
+MD_ROM 000689 21c61b clr     b               a,y0
+MD_ROM 00068a 56f400 move    #>$8000,a
+MD_ROM 00068c 061880 do      #<$18,>$68f
+MD_ROM 00068e 018050 div     y0,a
+MD_ROM 00068f 210c00 move    a0,a1
+MD_ROM 000690 0140c6 and     #>$7fffff,a
+MD_ROM 000692 2000f8 mpy     y1,x1,b
+MD_ROM 000693 0c1d89 asl     #$4,b,b
+MD_ROM 000694 218600 move    a1,y0
+MD_ROM 000695 56f400 move    #>$8000,a
+MD_ROM 000697 21e582 mac     x0,x0,a         b,x1
+MD_ROM 000698 200009 tfr     a,b
+MD_ROM 000699 2000a2 mac     x1,x0,a
+MD_ROM 00069a 2000ae mac     -x1,x0,b
+MD_ROM 00069b 21c500 move    a,x1
+MD_ROM 00069c 21e5e0 mpy     x1,y0,a         b,x1
+MD_ROM 00069d 0c1d08 asl     #$4,a,a
+MD_ROM 00069e 2000e8 mpy     x1,y0,b
+MD_ROM 00069f 0c1d89 asl     #$4,b,b
+MD_ROM 0006a0 5e7000 move    a,y:>$18d
+MD_ROM 0006a2 5f7000 move    b,y:>$18f
+MD_ROM 0006a4 56f400 move    #>$ff8000,a
+MD_ROM 0006a6 200082 mac     x0,x0,a
+MD_ROM 0006a7 21c500 move    a,x1
+MD_ROM 0006a8 2000e8 mpy     x1,y0,b
+MD_ROM 0006a9 0c1d8b asl     #$5,b,b
+MD_ROM 0006aa 0c1d86 asl     #$3,b,a
+MD_ROM 0006ab 200036 neg     a
+MD_ROM 0006ac 5f7000 move    b,y:>$18e
+MD_ROM 0006ae 5e7000 move    a,y:>$190
+MD_ROM 0006b0 4df000 move    y:>$176,x1
+MD_ROM 0006b2 56f400 move    #>$ff8000,a
+MD_ROM 0006b4 2000a2 mac     x1,x0,a
+MD_ROM 0006b5 200086 mac     -x0,x0,a
+MD_ROM 0006b6 21c500 move    a,x1
+MD_ROM 0006b7 2000e8 mpy     x1,y0,b
+MD_ROM 0006b8 0c1d8f asl     #$7,b,b
+MD_ROM 0006b9 5f7000 move    b,y:>$191
+MD_ROM 0006bb 050c5d bra     func_0006f8
+MD_ROM 0006bc 4df000 move    y:>$176,x1
+MD_ROM 0006be 4ff000 move    y:>$178,y1
+MD_ROM 0006c0 4cf0fc mpy     -y1,x1,b        y:>$177,x0
+MD_ROM 0006c2 0c1d89 asl     #$4,b,b
+MD_ROM 0006c3 56f400 move    #>$8000,a
+MD_ROM 0006c5 21e682 mac     x0,x0,a         b,y0
+MD_ROM 0006c6 2000d2 mac     y0,x0,a
+MD_ROM 0006c7 21c600 move    a,y0
+MD_ROM 0006c8 56f400 move    #>$8000,a
+MD_ROM 0006ca 061880 do      #<$18,>$6cd
+MD_ROM 0006cc 018050 div     y0,a
+MD_ROM 0006cd 210c00 move    a0,a1
+MD_ROM 0006ce 0140c6 and     #>$7fffff,a
+MD_ROM 0006d0 218600 move    a1,y0
+MD_ROM 0006d1 56f400 move    #>$8000,a
+MD_ROM 0006d3 200082 mac     x0,x0,a
+MD_ROM 0006d4 200009 tfr     a,b
+MD_ROM 0006d5 2000a2 mac     x1,x0,a
+MD_ROM 0006d6 2000ae mac     -x1,x0,b
+MD_ROM 0006d7 21c500 move    a,x1
+MD_ROM 0006d8 21e5e0 mpy     x1,y0,a         b,x1
+MD_ROM 0006d9 0c1d08 asl     #$4,a,a
+MD_ROM 0006da 2000e8 mpy     x1,y0,b
+MD_ROM 0006db 0c1d89 asl     #$4,b,b
+MD_ROM 0006dc 5e7000 move    a,y:>$18d
+MD_ROM 0006de 56f400 move    #>$ff8000,a
+MD_ROM 0006e0 200082 mac     x0,x0,a
+MD_ROM 0006e1 5f7000 move    b,y:>$18f
+MD_ROM 0006e3 21c500 move    a,x1
+MD_ROM 0006e4 2000e8 mpy     x1,y0,b
+MD_ROM 0006e5 0c1d8b asl     #$5,b,b
+MD_ROM 0006e6 0c1d86 asl     #$3,b,a
+MD_ROM 0006e7 5f7036 neg     a               b,y:>$18e
+MD_ROM 0006e9 4df000 move    y:>$176,x1
+MD_ROM 0006eb 5e7000 move    a,y:>$190
+MD_ROM 0006ed 2000fc mpy     -y1,x1,b
+MD_ROM 0006ee 0c1d89 asl     #$4,b,b
+MD_ROM 0006ef 56f400 move    #>$ff8000,a
+MD_ROM 0006f1 21e586 mac     -x0,x0,a        b,x1
+MD_ROM 0006f2 2000a2 mac     x1,x0,a
+MD_ROM 0006f3 21c500 move    a,x1
+MD_ROM 0006f4 2000e8 mpy     x1,y0,b
+MD_ROM 0006f5 0c1d8f asl     #$7,b,b
+MD_ROM 0006f6 5f7000 move    b,y:>$191
+MD_ROM 0006f8 63f400 move    #>$180,r3
+MD_ROM 0006fa 05f423 move    #>$ffffff,m3
+MD_ROM 0006fc 3b0200 move    #$2,n3
+MD_ROM 0006fd 358000 move    #$80,r5
+MD_ROM 0006fe 0501a5 move    #$1,m5
+MD_ROM 0006ff 4df000 move    y:>$172,x1
+MD_ROM 000701 4ef000 move    y:>$170,y0
+MD_ROM 000703 4e5d00 move    y0,y:(r5)+
+MD_ROM 000704 4ef000 move    y:>$171,y0
+MD_ROM 000706 4e5d00 move    y0,y:(r5)+
+MD_ROM 000707 5ef000 move    y:>$192,a
+MD_ROM 000709 58f000 move    y:>$193,a0
+MD_ROM 00070b 4cf000 move    y:>$196,x0
+MD_ROM 00070d 300100 move    #$1,r0
+MD_ROM 00070e 062080 do      #<$20,>$716
+MD_ROM 000710 f0a3d8 mpy     y0,x0,b         x:(r3),x0       y:(r5)+,y0
+MD_ROM 000711 486000 move    a,l:(r0)
+MD_ROM 000712 43d8da mac     y0,x0,b         l:(r0)+,y
+MD_ROM 000713 012786 mpysu   x1,y0,a
+MD_ROM 000714 01248f dmac    ss x1,y1,a
+MD_ROM 000715 f0ab10 add     b,a             x:(r3)+n3,x0    y:(r5)+,y0
+MD_ROM 000716 4c7000 move    x0,y:>$196
+MD_ROM 000718 5c7000 move    a1,y:>$192
+MD_ROM 00071a 587000 move    a0,y:>$193
+MD_ROM 00071c 63f400 move    #>$181,r3
+MD_ROM 00071e 5ef000 move    y:>$194,a
+MD_ROM 000720 58f000 move    y:>$195,a0
+MD_ROM 000722 4cf000 move    y:>$197,x0
+MD_ROM 000724 302200 move    #$22,r0
+MD_ROM 000725 062080 do      #<$20,>$72d
+MD_ROM 000727 f0a3d8 mpy     y0,x0,b         x:(r3),x0       y:(r5)+,y0
+MD_ROM 000728 486000 move    a,l:(r0)
+MD_ROM 000729 43d8da mac     y0,x0,b         l:(r0)+,y
+MD_ROM 00072a 012786 mpysu   x1,y0,a
+MD_ROM 00072b 01248f dmac    ss x1,y1,a
+MD_ROM 00072c f0ab10 add     b,a             x:(r3)+n3,x0    y:(r5)+,y0
+MD_ROM 00072d 4c7000 move    x0,y:>$197
+MD_ROM 00072f 5c7000 move    a1,y:>$194
+MD_ROM 000731 587000 move    a0,y:>$195
+MD_ROM 000733 05f425 move    #>$ffffff,m5
+MD_ROM 000735 33c800 move    #$c8,r3
+MD_ROM 000736 36c800 move    #$c8,r6
+MD_ROM 000737 0501a3 move    #$1,m3
+MD_ROM 000738 0501a6 move    #$1,m6
+MD_ROM 000739 4df000 move    y:>$175,x1
+MD_ROM 00073b 4cf000 move    y:>$173,x0
+MD_ROM 00073d 445b00 move    x0,x:(r3)+
+MD_ROM 00073e 4c5e00 move    x0,y:(r6)+
+MD_ROM 00073f 4cf000 move    y:>$174,x0
+MD_ROM 000741 445b00 move    x0,x:(r3)+
+MD_ROM 000742 4c5e00 move    x0,y:(r6)+
+MD_ROM 000743 340100 move    #$1,r4
+MD_ROM 000744 350000 move    #$0,r5
+MD_ROM 000745 300100 move    #$1,r0
+MD_ROM 000746 310000 move    #$0,r1
+MD_ROM 000747 325000 move    #$50,r2
+MD_ROM 000748 5ef000 move    y:>$198,a
+MD_ROM 00074a 58f000 move    y:>$199,a0
+MD_ROM 00074c 4ff000 move    y:>$19c,y1
+MD_ROM 00074e 4ef000 move    y:>$19d,y0
+MD_ROM 000750 430000 move    y,l:<$0
+MD_ROM 000751 486200 move    a,l:(r2)
+MD_ROM 000752 f09b00 move    x:(r3)+,x0      y:(r4)+,y0
+MD_ROM 000753 01278d mpysu   x0,y0,a
+MD_ROM 000754 f0bb00 move    x:(r3)+,x0      y:(r5)+,y0
+MD_ROM 000755 061080 do      #<$10,>$76b
+MD_ROM 000757 01268d macsu   x0,y0,a
+MD_ROM 000758 43da00 move    l:(r2)+,y
+MD_ROM 000759 012686 macsu   x1,y0,a
+MD_ROM 00075a f0d800 move    x:(r0)+,x0      y:(r6)+,y0
+MD_ROM 00075b 01248f dmac    ss x1,y1,a
+MD_ROM 00075c f0d9d2 mac     y0,x0,a         x:(r1)+,x0      y:(r6)+,y0
+MD_ROM 00075d f09bd2 mac     y0,x0,a         x:(r3)+,x0      y:(r4)+,y0
+MD_ROM 00075e 0127ad mpysu   x0,y0,b
+MD_ROM 00075f f0bb00 move    x:(r3)+,x0      y:(r5)+,y0
+MD_ROM 000760 486200 move    a,l:(r2)
+MD_ROM 000761 0126ad macsu   x0,y0,b
+MD_ROM 000762 43da00 move    l:(r2)+,y
+MD_ROM 000763 0126a6 macsu   x1,y0,b
+MD_ROM 000764 f0d800 move    x:(r0)+,x0      y:(r6)+,y0
+MD_ROM 000765 0124af dmac    ss x1,y1,b
+MD_ROM 000766 f0d9da mac     y0,x0,b         x:(r1)+,x0      y:(r6)+,y0
+MD_ROM 000767 f09bda mac     y0,x0,b         x:(r3)+,x0      y:(r4)+,y0
+MD_ROM 000768 01278d mpysu   x0,y0,a
+MD_ROM 000769 f0bb00 move    x:(r3)+,x0      y:(r5)+,y0
+MD_ROM 00076a 496200 move    b,l:(r2)
+MD_ROM 00076b 43fd00 move    l:-(r5),y
+MD_ROM 00076c 4f7000 move    y1,y:>$19c
+MD_ROM 00076e 4e7000 move    y0,y:>$19d
+MD_ROM 000770 5d7000 move    b1,y:>$198
+MD_ROM 000772 597000 move    b0,y:>$199
+MD_ROM 000774 33c800 move    #$c8,r3
+MD_ROM 000775 36c800 move    #$c8,r6
+MD_ROM 000776 342200 move    #$22,r4
+MD_ROM 000777 352100 move    #$21,r5
+MD_ROM 000778 302200 move    #$22,r0
+MD_ROM 000779 312100 move    #$21,r1
+MD_ROM 00077a 328000 move    #$80,r2
+MD_ROM 00077b 5ef000 move    y:>$19a,a
+MD_ROM 00077d 58f000 move    y:>$19b,a0
+MD_ROM 00077f 4ff000 move    y:>$19e,y1
+MD_ROM 000781 4ef000 move    y:>$19f,y0
+MD_ROM 000783 432100 move    y,l:<$21
+MD_ROM 000784 486200 move    a,l:(r2)
+MD_ROM 000785 f09b00 move    x:(r3)+,x0      y:(r4)+,y0
+MD_ROM 000786 01278d mpysu   x0,y0,a
+MD_ROM 000787 f0bb00 move    x:(r3)+,x0      y:(r5)+,y0
+MD_ROM 000788 061080 do      #<$10,>$79e
+MD_ROM 00078a 01268d macsu   x0,y0,a
+MD_ROM 00078b 43da00 move    l:(r2)+,y
+MD_ROM 00078c 012686 macsu   x1,y0,a
+MD_ROM 00078d f0d800 move    x:(r0)+,x0      y:(r6)+,y0
+MD_ROM 00078e 01248f dmac    ss x1,y1,a
+MD_ROM 00078f f0d9d2 mac     y0,x0,a         x:(r1)+,x0      y:(r6)+,y0
+MD_ROM 000790 f09bd2 mac     y0,x0,a         x:(r3)+,x0      y:(r4)+,y0
+MD_ROM 000791 0127ad mpysu   x0,y0,b
+MD_ROM 000792 f0bb00 move    x:(r3)+,x0      y:(r5)+,y0
+MD_ROM 000793 486200 move    a,l:(r2)
+MD_ROM 000794 0126ad macsu   x0,y0,b
+MD_ROM 000795 43da00 move    l:(r2)+,y
+MD_ROM 000796 0126a6 macsu   x1,y0,b
+MD_ROM 000797 f0d800 move    x:(r0)+,x0      y:(r6)+,y0
+MD_ROM 000798 0124af dmac    ss x1,y1,b
+MD_ROM 000799 f0d9da mac     y0,x0,b         x:(r1)+,x0      y:(r6)+,y0
+MD_ROM 00079a f09bda mac     y0,x0,b         x:(r3)+,x0      y:(r4)+,y0
+MD_ROM 00079b 01278d mpysu   x0,y0,a
+MD_ROM 00079c f0bb00 move    x:(r3)+,x0      y:(r5)+,y0
+MD_ROM 00079d 496200 move    b,l:(r2)
+MD_ROM 00079e 43fd00 move    l:-(r5),y
+MD_ROM 00079f 4f7000 move    y1,y:>$19e
+MD_ROM 0007a1 4e7000 move    y0,y:>$19f
+MD_ROM 0007a3 5d7000 move    b1,y:>$19a
+MD_ROM 0007a5 597000 move    b0,y:>$19b
+MD_ROM 0007a7 05f423 move    #>$ffffff,m3
+MD_ROM 0007a9 05f426 move    #>$ffffff,m6
+MD_ROM 0007ab 30a000 move    #$a0,r0
+MD_ROM 0007ac 221400 move    r0,r4
+MD_ROM 0007ad 314c00 move    #$4c,r1
+MD_ROM 0007ae 223500 move    r1,r5
+MD_ROM 0007af 0503a0 move    #$3,m0
+MD_ROM 0007b0 0503a4 move    #$3,m4
+MD_ROM 0007b1 4cf000 move    y:>$191,x0
+MD_ROM 0007b3 445800 move    x0,x:(r0)+
+MD_ROM 0007b4 4c5c00 move    x0,y:(r4)+
+MD_ROM 0007b5 4cf000 move    y:>$190,x0
+MD_ROM 0007b7 445800 move    x0,x:(r0)+
+MD_ROM 0007b8 4c5c00 move    x0,y:(r4)+
+MD_ROM 0007b9 4cf000 move    y:>$18f,x0
+MD_ROM 0007bb 445800 move    x0,x:(r0)+
+MD_ROM 0007bc 4c5c00 move    x0,y:(r4)+
+MD_ROM 0007bd 4cf000 move    y:>$18e,x0
+MD_ROM 0007bf 445800 move    x0,x:(r0)+
+MD_ROM 0007c0 4c5c00 move    x0,y:(r4)+
+MD_ROM 0007c1 4df000 move    y:>$18d,x1
+MD_ROM 0007c3 4ff000 move    y:>$1aa,y1
+MD_ROM 0007c5 4ef000 move    y:>$1ab,y0
+MD_ROM 0007c7 435900 move    y,l:(r1)+
+MD_ROM 0007c8 4ff000 move    y:>$1a8,y1
+MD_ROM 0007ca 4ef000 move    y:>$1a9,y0
+MD_ROM 0007cc 435900 move    y,l:(r1)+
+MD_ROM 0007cd 4ff000 move    y:>$1a2,y1
+MD_ROM 0007cf 4ef000 move    y:>$1a3,y0
+MD_ROM 0007d1 435900 move    y,l:(r1)+
+MD_ROM 0007d2 4ff000 move    y:>$1a0,y1
+MD_ROM 0007d4 4ef000 move    y:>$1a1,y0
+MD_ROM 0007d6 436100 move    y,l:(r1)
+MD_ROM 0007d7 314c00 move    #$4c,r1
+MD_ROM 0007d8 324d00 move    #$4d,r2
+MD_ROM 0007d9 75f400 move    #>$fffffd,n5
+MD_ROM 0007db 71f400 move    #>$fffffe,n1
+MD_ROM 0007dd 0af96b bset    #$b,sr
+MD_ROM 0007de 49e200 move    l:(r2),b
+MD_ROM 0007df f0b82a asr     b               x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 0007e0 061080 do      #<$10,>$802
+MD_ROM 0007e2 01278d mpysu   x0,y0,a
+MD_ROM 0007e3 495a00 move    b,l:(r2)+
+MD_ROM 0007e4 f0b800 move    x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 0007e5 01268d macsu   x0,y0,a
+MD_ROM 0007e6 f0b800 move    x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 0007e7 01268d macsu   x0,y0,a
+MD_ROM 0007e8 f0b800 move    x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 0007e9 01268d macsu   x0,y0,a
+MD_ROM 0007ea 43cd00 move    l:(r5)+n5,y
+MD_ROM 0007eb 012686 macsu   x1,y0,a
+MD_ROM 0007ec f09900 move    x:(r1)+,x0      y:(r4)+,y0
+MD_ROM 0007ed 01248f dmac    ss x1,y1,a
+MD_ROM 0007ee f099d2 mac     y0,x0,a         x:(r1)+,x0      y:(r4)+,y0
+MD_ROM 0007ef f099d2 mac     y0,x0,a         x:(r1)+,x0      y:(r4)+,y0
+MD_ROM 0007f0 f089d2 mac     y0,x0,a         x:(r1)+n1,x0    y:(r4)+,y0
+MD_ROM 0007f1 f0b8d2 mac     y0,x0,a         x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 0007f2 0127ad mpysu   x0,y0,b
+MD_ROM 0007f3 485a00 move    a,l:(r2)+
+MD_ROM 0007f4 f0b800 move    x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 0007f5 0126ad macsu   x0,y0,b
+MD_ROM 0007f6 f0b800 move    x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 0007f7 0126ad macsu   x0,y0,b
+MD_ROM 0007f8 f0b800 move    x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 0007f9 0126ad macsu   x0,y0,b
+MD_ROM 0007fa 43cd00 move    l:(r5)+n5,y
+MD_ROM 0007fb 0126a6 macsu   x1,y0,b
+MD_ROM 0007fc f09900 move    x:(r1)+,x0      y:(r4)+,y0
+MD_ROM 0007fd 0124af dmac    ss x1,y1,b
+MD_ROM 0007fe f099da mac     y0,x0,b         x:(r1)+,x0      y:(r4)+,y0
+MD_ROM 0007ff f099da mac     y0,x0,b         x:(r1)+,x0      y:(r4)+,y0
+MD_ROM 000800 f089da mac     y0,x0,b         x:(r1)+n1,x0    y:(r4)+,y0
+MD_ROM 000801 f0b8da mac     y0,x0,b         x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 000802 43d900 move    l:(r1)+,y
+MD_ROM 000803 495a00 move    b,l:(r2)+
+MD_ROM 000804 4f7000 move    y1,y:>$1aa
+MD_ROM 000806 4e7000 move    y0,y:>$1ab
+MD_ROM 000808 43d900 move    l:(r1)+,y
+MD_ROM 000809 4f7000 move    y1,y:>$1a8
+MD_ROM 00080b 4e7000 move    y0,y:>$1a9
+MD_ROM 00080d 43d900 move    l:(r1)+,y
+MD_ROM 00080e 4f7000 move    y1,y:>$1a2
+MD_ROM 000810 4e7000 move    y0,y:>$1a3
+MD_ROM 000812 43d900 move    l:(r1)+,y
+MD_ROM 000813 4f7000 move    y1,y:>$1a0
+MD_ROM 000815 4e7000 move    y0,y:>$1a1
+MD_ROM 000817 30a000 move    #$a0,r0
+MD_ROM 000818 221400 move    r0,r4
+MD_ROM 000819 317c00 move    #$7c,r1
+MD_ROM 00081a 223500 move    r1,r5
+MD_ROM 00081b 4ff000 move    y:>$1ae,y1
+MD_ROM 00081d 4ef000 move    y:>$1af,y0
+MD_ROM 00081f 435900 move    y,l:(r1)+
+MD_ROM 000820 4ff000 move    y:>$1ac,y1
+MD_ROM 000822 4ef000 move    y:>$1ad,y0
+MD_ROM 000824 435900 move    y,l:(r1)+
+MD_ROM 000825 4ff000 move    y:>$1a6,y1
+MD_ROM 000827 4ef000 move    y:>$1a7,y0
+MD_ROM 000829 435900 move    y,l:(r1)+
+MD_ROM 00082a 327d00 move    #$7d,r2
+MD_ROM 00082b 4ff000 move    y:>$1a4,y1
+MD_ROM 00082d 4ef000 move    y:>$1a5,y0
+MD_ROM 00082f 436100 move    y,l:(r1)
+MD_ROM 000830 317c00 move    #$7c,r1
+MD_ROM 000831 49e200 move    l:(r2),b
+MD_ROM 000832 f0b82a asr     b               x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 000833 061080 do      #<$10,>$855
+MD_ROM 000835 01278d mpysu   x0,y0,a
+MD_ROM 000836 495a00 move    b,l:(r2)+
+MD_ROM 000837 f0b800 move    x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 000838 01268d macsu   x0,y0,a
+MD_ROM 000839 f0b800 move    x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 00083a 01268d macsu   x0,y0,a
+MD_ROM 00083b f0b800 move    x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 00083c 01268d macsu   x0,y0,a
+MD_ROM 00083d 43cd00 move    l:(r5)+n5,y
+MD_ROM 00083e 012686 macsu   x1,y0,a
+MD_ROM 00083f f09900 move    x:(r1)+,x0      y:(r4)+,y0
+MD_ROM 000840 01248f dmac    ss x1,y1,a
+MD_ROM 000841 f099d2 mac     y0,x0,a         x:(r1)+,x0      y:(r4)+,y0
+MD_ROM 000842 f099d2 mac     y0,x0,a         x:(r1)+,x0      y:(r4)+,y0
+MD_ROM 000843 f089d2 mac     y0,x0,a         x:(r1)+n1,x0    y:(r4)+,y0
+MD_ROM 000844 f0b8d2 mac     y0,x0,a         x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 000845 0127ad mpysu   x0,y0,b
+MD_ROM 000846 485a00 move    a,l:(r2)+
+MD_ROM 000847 f0b800 move    x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 000848 0126ad macsu   x0,y0,b
+MD_ROM 000849 f0b800 move    x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 00084a 0126ad macsu   x0,y0,b
+MD_ROM 00084b f0b800 move    x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 00084c 0126ad macsu   x0,y0,b
+MD_ROM 00084d 43cd00 move    l:(r5)+n5,y
+MD_ROM 00084e 0126a6 macsu   x1,y0,b
+MD_ROM 00084f f09900 move    x:(r1)+,x0      y:(r4)+,y0
+MD_ROM 000850 0124af dmac    ss x1,y1,b
+MD_ROM 000851 f099da mac     y0,x0,b         x:(r1)+,x0      y:(r4)+,y0
+MD_ROM 000852 f099da mac     y0,x0,b         x:(r1)+,x0      y:(r4)+,y0
+MD_ROM 000853 f089da mac     y0,x0,b         x:(r1)+n1,x0    y:(r4)+,y0
+MD_ROM 000854 f0b8da mac     y0,x0,b         x:(r0)+,x0      y:(r5)+,y0
+MD_ROM 000855 43d900 move    l:(r1)+,y
+MD_ROM 000856 495a00 move    b,l:(r2)+
+MD_ROM 000857 0af94b bclr    #$b,sr
+MD_ROM 000858 4f7000 move    y1,y:>$1ae
+MD_ROM 00085a 4e7000 move    y0,y:>$1af
+MD_ROM 00085c 43d900 move    l:(r1)+,y
+MD_ROM 00085d 4f7000 move    y1,y:>$1ac
+MD_ROM 00085f 4e7000 move    y0,y:>$1ad
+MD_ROM 000861 43d900 move    l:(r1)+,y
+MD_ROM 000862 4f7000 move    y1,y:>$1a6
+MD_ROM 000864 4e7000 move    y0,y:>$1a7
+MD_ROM 000866 43d900 move    l:(r1)+,y
+MD_ROM 000867 4f7000 move    y1,y:>$1a4
+MD_ROM 000869 4e7000 move    y0,y:>$1a5
+MD_ROM 00086b 304e00 move    #$4e,r0
+MD_ROM 00086c 317e00 move    #$7e,r1
+MD_ROM 00086d 05f420 move    #>$ffffff,m0
+MD_ROM 00086f 0464a0 move    m0,m4
+MD_ROM 000870 4ef000 move    y:>$179,y0
+MD_ROM 000872 42e000 move    l:(r0),x
+MD_ROM 000873 062080 do      #<$20,>$87f
+MD_ROM 000875 012785 mpysu   y0,x0,a
+MD_ROM 000876 01248e dmac    ss y0,x1,a
+MD_ROM 000877 0c1d10 asl     #$8,a,a
+MD_ROM 000878 42e100 move    l:(r1),x
+MD_ROM 000879 485800 move    a,l:(r0)+
+MD_ROM 00087a 0127a5 mpysu   y0,x0,b
+MD_ROM 00087b 0124ae dmac    ss y0,x1,b
+MD_ROM 00087c 0c1d91 asl     #$8,b,b
+MD_ROM 00087d 42e000 move    l:(r0),x
+MD_ROM 00087e 495900 move    b,l:(r1)+
+MD_ROM 00087f 304e00 move    #$4e,r0
+MD_ROM 000880 317e00 move    #$7e,r1
+MD_ROM 000881 6af000 move    y:>$1b0,r2
+MD_ROM 000883 05bfa2 move    #$bf,m2
+MD_ROM 000884 340000 move    #$0,r4
+MD_ROM 000885 47f400 move    #>$4ccccd,y1
+MD_ROM 000887 5ef000 move    y:>$1b5,a
+MD_ROM 000889 5ff000 move    y:>$1b6,b
+MD_ROM 00088b 42d800 move    l:(r0)+,x
+MD_ROM 00088c 062080 do      #<$20,>$894
+MD_ROM 00088e 141af2 mac     y1,x1,a         x1,x:(r2)+      a,y0
+MD_ROM 00088f b01a00 move    x0,x:(r2)+      y0,y:(r4)+
+MD_ROM 000890 42d9b6 mac     -y1,y0,a        l:(r1)+,x
+MD_ROM 000891 161afa mac     y1,x1,b         x1,x:(r2)+      b,y0
+MD_ROM 000892 b01a00 move    x0,x:(r2)+      y0,y:(r4)+
+MD_ROM 000893 42d8be mac     -y1,y0,b        l:(r0)+,x
+MD_ROM 000894 5e7000 move    a,y:>$1b5
+MD_ROM 000896 5f7000 move    b,y:>$1b6
+MD_ROM 000898 05f422 move    #>$ffffff,m2
+MD_ROM 00089a 6a7000 move    r2,y:>$1b0
+MD_ROM 00089c 340000 move    #$0,r4
+MD_ROM 00089d 229500 move    r4,r5
+MD_ROM 00089e 229200 move    r4,r2
+MD_ROM 00089f 254000 move    #$40,x1
+MD_ROM 0008a0 5ef000 move    y:>$1b1,a
+MD_ROM 0008a2 5ff000 move    y:>$1b3,b
+MD_ROM 0008a4 4ff000 move    y:>$17d,y1
+MD_ROM 0008a6 4ef000 move    y:>$1b2,y0
+MD_ROM 0008a8 21c4e6 mac     -x1,y0,a        a,x0
+MD_ROM 0008a9 4edcc6 mac     -x0,y1,a        y:(r4)+,y0
+MD_ROM 0008aa 2000e2 mac     x1,y0,a
+MD_ROM 0008ab 4ef000 move    y:>$1b4,y0
+MD_ROM 0008ad 02f4f4 move    y:(r4+$3d),x0
+MD_ROM 0008ae 4c7000 move    x0,y:>$1b2
+MD_ROM 0008b0 02fcb4 move    y:(r4+$3e),x0
+MD_ROM 0008b1 4c7000 move    x0,y:>$1b4
+MD_ROM 0008b3 21e4ee mac     -x1,y0,b        b,x0
+MD_ROM 0008b4 4edcce mac     -x0,y1,b        y:(r4)+,y0
+MD_ROM 0008b5 4eddea mac     x1,y0,b         y:(r5)+,y0
+MD_ROM 0008b6 061f80 do      #<$1f,>$8be
+MD_ROM 0008b8 181ae6 mac     -x1,y0,a        a,x:(r2)+       a,y0
+MD_ROM 0008b9 4edcb6 mac     -y1,y0,a        y:(r4)+,y0
+MD_ROM 0008ba 4edde2 mac     x1,y0,a         y:(r5)+,y0
+MD_ROM 0008bb 1e1aee mac     -x1,y0,b        b,x:(r2)+       b,y0
+MD_ROM 0008bc 4edcbe mac     -y1,y0,b        y:(r4)+,y0
+MD_ROM 0008bd 4eddea mac     x1,y0,b         y:(r5)+,y0
+MD_ROM 0008be 5e7000 move    a,y:>$1b1
+MD_ROM 0008c0 5f7000 move    b,y:>$1b3
+MD_ROM 0008c2 565a00 move    a,x:(r2)+
+MD_ROM 0008c3 575a00 move    b,x:(r2)+
+MD_ROM 0008c4 300000 move    #$0,r0
+MD_ROM 0008c5 340000 move    #$0,r4
+MD_ROM 0008c6 44d800 move    x:(r0)+,x0
+MD_ROM 0008c7 44d880 mpy     x0,x0,a         x:(r0)+,x0
+MD_ROM 0008c8 44d882 mac     x0,x0,a         x:(r0)+,x0
+MD_ROM 0008c9 0c1d06 asl     #$3,a,a
+MD_ROM 0008ca 061080 do      #<$10,>$8d2
+MD_ROM 0008cc 44d888 mpy     x0,x0,b         x:(r0)+,x0
+MD_ROM 0008cd b2988a mac     x0,x0,b         x:(r0)+,x0      a,y:(r4)+
+MD_ROM 0008ce 0c1d87 asl     #$3,b,b
+MD_ROM 0008cf 44d880 mpy     x0,x0,a         x:(r0)+,x0
+MD_ROM 0008d0 b39882 mac     x0,x0,a         x:(r0)+,x0      b,y:(r4)+
+MD_ROM 0008d1 0c1d06 asl     #$3,a,a
+MD_ROM 0008d2 33fd00 move    #$fd,r3
+MD_ROM 0008d3 32fe00 move    #$fe,r2
+MD_ROM 0008d4 31ff00 move    #$ff,r1
+MD_ROM 0008d5 340000 move    #$0,r4
+MD_ROM 0008d6 300000 move    #$0,r0
+MD_ROM 0008d7 4cf000 move    y:>$17a,x0
+MD_ROM 0008d9 446100 move    x0,x:(r1)
+MD_ROM 0008da 4cf000 move    y:>$17b,x0
+MD_ROM 0008dc 446200 move    x0,x:(r2)
+MD_ROM 0008dd 45f400 move    #>$7fdf3b,x1
+MD_ROM 0008df 456300 move    x1,x:(r3)
+MD_ROM 0008e0 4cf000 move    y:>$1ba,x0
+MD_ROM 0008e2 5ef000 move    y:>$1b7,a
+MD_ROM 0008e4 58f000 move    y:>$1b8,a0
+MD_ROM 0008e6 4ef000 move    y:>$1b9,y0
+MD_ROM 0008e8 062080 do      #<$20,>$8f4
+MD_ROM 0008ea 2000e8 mpy     x1,y0,b
+MD_ROM 0008eb 19180d cmp     a,b             a,x:(r0)+       a,y1
+MD_ROM 0008ec 05f402 ble     func_0008ee
+MD_ROM 0008ed 44e100 move    x:(r1),x0
+MD_ROM 0008ee 4fdcf8 mpy     y1,x1,b         y:(r4)+,y1
+MD_ROM 0008ef 21c65d cmp     y0,b            a,y0
+MD_ROM 0008f0 05f402 ble     func_0008f2
+MD_ROM 0008f1 44e200 move    x:(r2),x0
+MD_ROM 0008f2 21c7c2 mac     x0,y1,a         a,y1
+MD_ROM 0008f3 45e3c6 mac     -x0,y1,a        x:(r3),x1
+MD_ROM 0008f4 4c7000 move    x0,y:>$1ba
+MD_ROM 0008f6 4e7000 move    y0,y:>$1b9
+MD_ROM 0008f8 5e7000 move    a,y:>$1b7
+MD_ROM 0008fa 587000 move    a0,y:>$1b8
+MD_ROM 0008fc 300000 move    #$0,r0
+MD_ROM 0008fd 340000 move    #$0,r4
+MD_ROM 0008fe 4cf000 move    y:>$1bb,x0
+MD_ROM 000900 208f00 move    x0,b
+MD_ROM 000901 062080 do      #<$20,>$906
+MD_ROM 000903 b7988e mac     -x0,x0,b        x:(r0)+,x1      b,y:(r4)+
+MD_ROM 000904 200068 add     x1,b
+MD_ROM 000905 21e400 move    b,x0
+MD_ROM 000906 5f7000 move    b,y:>$1bb
+MD_ROM 000908 340000 move    #$0,r4
+MD_ROM 000909 229000 move    r4,r0
+MD_ROM 00090a 31f000 move    #$f0,r1
+MD_ROM 00090b 32f100 move    #$f1,r2
+MD_ROM 00090c 35f000 move    #$f0,r5
+MD_ROM 00090d 36f100 move    #$f1,r6
+MD_ROM 00090e 4cf000 move    y:>$182,x0
+MD_ROM 000910 446100 move    x0,x:(r1)
+MD_ROM 000911 4cf000 move    y:>$181,x0
+MD_ROM 000913 4c6500 move    x0,y:(r5)
+MD_ROM 000914 4cf000 move    y:>$184,x0
+MD_ROM 000916 446200 move    x0,x:(r2)
+MD_ROM 000917 4cf000 move    y:>$183,x0
+MD_ROM 000919 4c6600 move    x0,y:(r6)
+MD_ROM 00091a 4ff000 move    y:>$17f,y1
+MD_ROM 00091c 4df000 move    y:>$180,x1
+MD_ROM 00091e 5edc00 move    y:(r4)+,a
+MD_ROM 00091f 200065 cmp     x1,a
+MD_ROM 000920 062080 do      #<$20,>$92f
+MD_ROM 000922 05f405 ble     func_000927
+MD_ROM 000923 10a200 move    x:(r2),x0       a,y0
+MD_ROM 000924 4ee6d0 mpy     y0,x0,a         y:(r6),y0
+MD_ROM 000925 200050 add     y0,a
+MD_ROM 000926 050c06 bra     func_00092c
+MD_ROM 000927 200075 cmp     y1,a
+MD_ROM 000928 05f404 ble     func_00092c
+MD_ROM 000929 10a100 move    x:(r1),x0       a,y0
+MD_ROM 00092a 4ee5d0 mpy     y0,x0,a         y:(r5),y0
+MD_ROM 00092b 200050 add     y0,a
+MD_ROM 00092c 565800 move    a,x:(r0)+
+MD_ROM 00092d 5edc00 move    y:(r4)+,a
+MD_ROM 00092e 200065 cmp     x1,a
+MD_ROM 00092f 300000 move    #$0,r0
+MD_ROM 000930 221400 move    r0,r4
+MD_ROM 000931 5ef000 move    y:>$1bd,a
+MD_ROM 000933 364000 move    #$40,r6
+MD_ROM 000934 10dc00 move    a,x0            y:(r4)+,y0
+MD_ROM 000935 062080 do      #<$20,>$93a
+MD_ROM 000937 b6d8d6 mac     -y0,x0,a        x:(r0)+,x1      a,y:(r6)+
+MD_ROM 000938 4edc60 add     x1,a            y:(r4)+,y0
+MD_ROM 000939 21c400 move    a,x0
+MD_ROM 00093a 364000 move    #$40,r6
+MD_ROM 00093b 354100 move    #$41,r5
+MD_ROM 00093c 3d0200 move    #$2,n5
+MD_ROM 00093d 23be00 move    n5,n6
+MD_ROM 00093e 5e7000 move    a,y:>$1bd
+MD_ROM 000940 4cf000 move    y:>$17e,x0
+MD_ROM 000942 56f400 move    #>$7fffff,a
+MD_ROM 000944 200044 sub     x0,a
+MD_ROM 000945 4cf000 move    y:>$17c,x0
+MD_ROM 000947 21c500 move    a,x1
+MD_ROM 000948 2000a0 mpy     x1,x0,a
+MD_ROM 000949 21c400 move    a,x0
+MD_ROM 00094a 4ee600 move    y:(r6),y0
+MD_ROM 00094b 2000d0 mpy     y0,x0,a
+MD_ROM 00094c 061080 do      #<$10,>$952
+MD_ROM 00094e 4fe500 move    y:(r5),y1
+MD_ROM 00094f 5e4ec8 mpy     x0,y1,b         a,y:(r6)+n6
+MD_ROM 000950 4ee600 move    y:(r6),y0
+MD_ROM 000951 5f4dd0 mpy     y0,x0,a         b,y:(r5)+n5
+MD_ROM 000952 364000 move    #$40,r6
+MD_ROM 000953 68f000 move    y:>$1b0,r0
+MD_ROM 000955 05bfa0 move    #$bf,m0
+MD_ROM 000956 61f400 move    #>$180,r1
+MD_ROM 000958 340000 move    #$0,r4
+MD_ROM 000959 5ef000 move    y:>$17e,a
+MD_ROM 00095b 0c1c0e asr     #$7,a,a
+MD_ROM 00095c 21c700 move    a,y1
+MD_ROM 00095d f4d800 move    x:(r0)+,x1      y:(r6)+,y0
+MD_ROM 00095e 44d800 move    x:(r0)+,x0
+MD_ROM 00095f 062080 do      #<$20,>$96f
+MD_ROM 000961 012785 mpysu   y0,x0,a
+MD_ROM 000962 01268c macsu   y1,x0,a
+MD_ROM 000963 012486 dmac    ss x1,y0,a
+MD_ROM 000964 45d8f2 mac     y1,x1,a         x:(r0)+,x1
+MD_ROM 000965 0c1d0e asl     #$7,a,a
+MD_ROM 000966 44d800 move    x:(r0)+,x0
+MD_ROM 000967 0127a5 mpysu   y0,x0,b
+MD_ROM 000968 0126ac macsu   y1,x0,b
+MD_ROM 000969 0124a6 dmac    ss x1,y0,b
+MD_ROM 00096a f4d8fa mac     y1,x1,b         x:(r0)+,x1      y:(r6)+,y0
+MD_ROM 00096b 0c1d8f asl     #$7,b,b
+MD_ROM 00096c b29800 move    x:(r0)+,x0      a,y:(r4)+
+MD_ROM 00096d bb1900 move    a,x:(r1)+       b,y:(r4)+
+MD_ROM 00096e 575900 move    b,x:(r1)+
+MD_ROM 00096f 05f420 move    #>$ffffff,m0
+MD_ROM 000971 56f000 move    x:>$640,a
+MD_ROM 000973 014280 add     #<$2,a
+MD_ROM 000974 350000 move    #$0,r5
+MD_ROM 000975 21d000 move    a,r0
+MD_ROM 000976 21d600 move    a,r6
+MD_ROM 000977 380300 move    #$3,n0
+MD_ROM 000978 231e00 move    n0,n6
+MD_ROM 000979 f3a800 move    x:(r0)+n0,x0    y:(r5)+,b
+MD_ROM 00097a 200048 add     x0,b
+MD_ROM 00097b 062080 do      #<$20,>$981
+MD_ROM 00097d f2a800 move    x:(r0)+n0,x0    y:(r5)+,a
+MD_ROM 00097e 574e40 add     x0,a            b,x:(r6)+n6
+MD_ROM 00097f f3a800 move    x:(r0)+n0,x0    y:(r5)+,b
+MD_ROM 000980 564e48 add     x0,b            a,x:(r6)+n6
+MD_ROM 000981 60f000 move    x:>$641,r0
+MD_ROM 000983 380200 move    #$2,n0
+MD_ROM 000984 5ef000 move    y:>$1c0,a
+MD_ROM 000986 45f41b clr     b               #>$a3d7,x1
+MD_ROM 000988 46f400 move    #>$7f5c29,y0
+MD_ROM 00098a 062080 do      #<$20,>$991
+MD_ROM 00098c 198800 move    x:(r0)+n0,a     a,y1
+MD_ROM 00098d 200026 abs     a
+MD_ROM 00098e 21c4b0 mpy     y1,y0,a         a,x0
+MD_ROM 00098f 2000a2 mac     x1,x0,a
+MD_ROM 000990 200015 maxm    a,b
+MD_ROM 000991 60f000 move    x:>$641,r0
+MD_ROM 000993 5e7000 move    a,y:>$1c0
+MD_ROM 000995 5f7000 move    b,y:>$1be
+MD_ROM 000997 5ef000 move    y:>$1c1,a
+MD_ROM 000999 20581b clr     b               (r0)+
+MD_ROM 00099a 062080 do      #<$20,>$9a1
+MD_ROM 00099c 198800 move    x:(r0)+n0,a     a,y1
+MD_ROM 00099d 200026 abs     a
+MD_ROM 00099e 21c4b0 mpy     y1,y0,a         a,x0
+MD_ROM 00099f 2000a2 mac     x1,x0,a
+MD_ROM 0009a0 200015 maxm    a,b
+MD_ROM 0009a1 5e7000 move    a,y:>$1c1
+MD_ROM 0009a3 5f7000 move    b,y:>$1bf
+MD_ROM 0009a5 240000 move    #$0,x0
+MD_ROM 0009a6 447000 move    x0,x:>$647
+MD_ROM 0009a8 0d10c0 bra     int_00003c
+MD_ROM 0009aa 087086 movep   x:<<$ffffc6,x:<<$ffffda
+MD_ROM 0009ac 08f498 movep   #>$e9ac4,x:<<$ffffd8
+MD_ROM 0009ae 000000 nop  
+MD_ROM 0009af 0cc300 brclr   #$0,x:<<$ffffc3,func_0009af
+MD_ROM 0009b1 087086 movep   x:<<$ffffc6,x:<<$ffffd9
+MD_ROM 0009b3 08f498 movep   #>$8e9ac4,x:<<$ffffd8
+MD_ROM 0009b5 000004 rti  
+MD_ROM 0009b6 607000 move    r0,x:>$643
+MD_ROM 0009b8 0cc300 brclr   #$0,x:<<$ffffc3,func_0009b8
+MD_ROM 0009ba 085006 movep   x:<<$ffffc6,r0
+MD_ROM 0009bb 08e0c7 movep   y:(r0),x:<<$ffffc7
+MD_ROM 0009bc 60f000 move    x:>$643,r0
+MD_ROM 0009be 000004 rti  
+MD_ROM 0009bf 08f498 movep   #>$4e9ac4,x:<<$ffffd8
+MD_ROM 0009c1 000004 rti  
+MD_ROM 0009c2 527000 move    a2,x:>$646
+MD_ROM 0009c4 547000 move    a1,x:>$645
+MD_ROM 0009c6 507000 move    a0,x:>$644
+MD_ROM 0009c8 08f4ac movep   #>$c861c0,x:<<$ffffec
+MD_ROM 0009ca 56f000 move    x:>$647,a
+MD_ROM 0009cc 014180 add     #<$1,a
+MD_ROM 0009cd 014385 cmp     #<$3,a
+MD_ROM 0009ce 05140a bge     func_0009d8
+MD_ROM 0009cf 567000 move    a,x:>$647
+MD_ROM 0009d1 54f000 move    x:>$645,a1
+MD_ROM 0009d3 52f000 move    x:>$646,a2
+MD_ROM 0009d5 50f000 move    x:>$644,a0
+MD_ROM 0009d7 000004 rti  
+MD_ROM 0009d8 08f4a8 movep   #>$0,x:<<$ffffe8
+MD_ROM 0009da 0c09da jmp     func_0009da
+MD_ROM 0009db 08f4a8 movep   #>$d06510,x:<<$ffffe8
+MD_ROM 0009dd 000004 rti  
+MD_ROM 0009de 200013 clr     a
+MD_ROM 0009df f0881b clr     b               x:(r0)+n0,x0    y:(r4)+,y0
+MD_ROM 0009e0 062080 do      #<$20,>$9e8
+MD_ROM 0009e2 d498d2 mac     y0,x0,a         x:(r0)+,x1      y:(r4)+n4,y0
+MD_ROM 0009e3 f088da mac     y0,x0,b         x:(r0)+n0,x0    y:(r4)+,y0
+MD_ROM 0009e4 0c1d06 asl     #$3,a,a
+MD_ROM 0009e5 0c1d87 asl     #$3,b,b
+MD_ROM 0009e6 565913 clr     a               a,x:(r1)+
+MD_ROM 0009e7 57591b clr     b               b,x:(r1)+
+MD_ROM 0009e8 000000 nop  
+MD_ROM 0009e9 00000c rts  
+MD_ROM 0009ea 4eccd2 mac     y0,x0,a         y:(r4)+n4,y0
+MD_ROM 0009eb f088da mac     y0,x0,b         x:(r0)+n0,x0    y:(r4)+,y0
+MD_ROM 0009ec 4eccd2 mac     y0,x0,a         y:(r4)+n4,y0
+MD_ROM 0009ed f088da mac     y0,x0,b         x:(r0)+n0,x0    y:(r4)+,y0
+MD_ROM 0009ee 4eccd2 mac     y0,x0,a         y:(r4)+n4,y0
+MD_ROM 0009ef f088da mac     y0,x0,b         x:(r0)+n0,x0    y:(r4)+,y0
+MD_ROM 0009f0 4eccd2 mac     y0,x0,a         y:(r4)+n4,y0
+MD_ROM 0009f1 f088da mac     y0,x0,b         x:(r0)+n0,x0    y:(r4)+,y0
+MD_ROM 0009f2 4eccd2 mac     y0,x0,a         y:(r4)+n4,y0
+MD_ROM 0009f3 f088da mac     y0,x0,b         x:(r0)+n0,x0    y:(r4)+,y0
+MD_ROM 0009f4 4eccd2 mac     y0,x0,a         y:(r4)+n4,y0
+MD_ROM 0009f5 f088da mac     y0,x0,b         x:(r0)+n0,x0    y:(r4)+,y0
+MD_ROM 0009f6 4eccd2 mac     y0,x0,a         y:(r4)+n4,y0
+MD_ROM 0009f7 f088da mac     y0,x0,b         x:(r0)+n0,x0    y:(r4)+,y0
+MD_ROM 0009f8 4eccd2 mac     y0,x0,a         y:(r4)+n4,y0
+MD_ROM 0009f9 f088da mac     y0,x0,b         x:(r0)+n0,x0    y:(r4)+,y0
+MD_ROM 0009fa 4eccd2 mac     y0,x0,a         y:(r4)+n4,y0
+MD_ROM 0009fb f088da mac     y0,x0,b         x:(r0)+n0,x0    y:(r4)+,y0
+MD_ROM 0009fc 4eccd2 mac     y0,x0,a         y:(r4)+n4,y0
+MD_ROM 0009fd f088da mac     y0,x0,b         x:(r0)+n0,x0    y:(r4)+,y0
+MD_ROM 0009fe 4eccd2 mac     y0,x0,a         y:(r4)+n4,y0
+MD_ROM 0009ff f088da mac     y0,x0,b         x:(r0)+n0,x0    y:(r4)+,y0
+MD_WRITE_REG r0=0000c4 n=000000 m=00001f
+MD_WRITE_REG r1=0000c0 n=ffffbf m=00001f
+MD_WRITE_REG r2=101327 n=017afc m=ffffff
+MD_WRITE_REG r3=101328 n=017afc m=ffffff
+MD_WRITE_REG r4=000004 n=000005 m=00001f
+MD_WRITE_REG r5=000020 n=000002 m=00001f
+MD_WRITE_REG r6=0006d8 n=000005 m=ffffff
+MD_WRITE_REG r7=000150 n=fffffe m=ffffff
+MD_SNAP_COUNT 424
+MD_EARLY tick=30 bytes=3380 tiles=336 ucPC=201124 mixerPC=9da producerPC=bd mixerInstr=141086878 producerInstr=152942104 mixerCycles=304692168 producerCycles=304666759 ucCycles=120000005
+fresh boot state: ucPC=0x201124 ucCycles=120000005 mixerPC=0x9da producerPC=0xbd mixerCycles=304692168 producerCycles=304666759 bytes=3380 tiles=336 lit=748
+MD_PROGRAM dsp=0 hash=e84bcaacc7cb48c6 nonzero=424
+MD_PROGRAM dsp=1 hash=1e7a88cba19ce116 nonzero=125648
+fresh boot: panel UART stream stopped early
