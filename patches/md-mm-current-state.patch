@@ -1,4 +1,4 @@
-### Snapshot of md-interp-work/mdmm, Wed Sep 16 20:08:36 CEST 2026
+### Snapshot of md-interp-work/mdmm, Wed Sep 16 20:10:44 CEST 2026
 
 diff --git a/base.cmake b/base.cmake
 index 0a880954..23428f2d 100644
@@ -1064,7 +1064,7 @@ index ddf2aae3..99edbe2c 100644
 +		XCODE_ATTRIBUTE_INFOPLIST_KEY_UIApplicationSceneManifest_Generation NO)
 +endif()
 diff --git a/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp b/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
-index 5204dedf..4eac893b 100644
+index 5204dedf..d98c6d6e 100644
 --- a/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
 +++ b/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
 @@ -4,6 +4,9 @@
@@ -1077,7 +1077,7 @@ index 5204dedf..4eac893b 100644
  
  #include <algorithm>
  #include <cstdlib>
-@@ -25,12 +28,252 @@ namespace
+@@ -25,12 +28,259 @@ namespace
  		constexpr uint32_t blockSize = 128;
  		const uint32_t frameCount = md::g_samplerate * _seconds;
  		for(uint32_t frame = 0; frame < frameCount; frame += blockSize)
@@ -1149,6 +1149,13 @@ index 5204dedf..4eac893b 100644
 +				// DIAGNOSTIC: inter-DSP ESSI link depth. The mixer's mainline consumes
 +				// producer samples over this link; if its input ring is empty the
 +				// mainline blocks and cannot reset the DMA0 fault counter.
++				{
++					auto& mdma = _hardware.getDspMixer().getPeriph().getDMA();
++					std::cerr << "MD_DMACH tick=" << tick;
++					for(dsp56k::TWord ch=0; ch<6; ++ch)
++						std::cerr << " ch" << ch << '=' << mdma.diagCompletions(ch);
++					std::cerr << '\n';
++				}
 +				std::cerr << "MD_IRQ tick=" << tick
 +					<< " mixInject=" << _hardware.getDspMixer().dsp().m_injectCount
 +					<< " mixPendMax=" << _hardware.getDspMixer().dsp().m_pendingIrqMax
@@ -1330,7 +1337,7 @@ index 5204dedf..4eac893b 100644
  		if(!_hardware.getUC().isPanelHandshakeComplete())
  			throw std::runtime_error(std::string(_phase) + ": panel handshake did not complete");
  		if(!_hardware.isFirmwareMidiReady())
-@@ -66,7 +309,8 @@ int main()
+@@ -66,7 +316,8 @@ int main()
  		require(fresh.isValid(), "fresh machine was invalid");
  		require(fresh.isFactoryFlashInitializationExpected(),
  			"fresh machine did not enter factory initialization");
@@ -1658,7 +1665,7 @@ index 111c374..b80dcd7 100644
  			mach_vm_deallocate(mach_task_self(), reinterpret_cast<mach_vm_address_t>(m_data), m_size);
  #endif
 diff --git a/source/dsp56kEmu/dma.cpp b/source/dsp56kEmu/dma.cpp
-index d6e58f1..c692a64 100644
+index d6e58f1..5fcda90 100644
 --- a/source/dsp56kEmu/dma.cpp
 +++ b/source/dsp56kEmu/dma.cpp
 @@ -1,5 +1,8 @@
@@ -1699,6 +1706,39 @@ index d6e58f1..c692a64 100644
  		m_dma.removeTriggerTarget(this);
  
  		m_dcr = _controlRegister;
+@@ -761,8 +786,10 @@ namespace dsp56k
+ 		return true;
+ 	}
+ 
++	// DIAGNOSTIC: per-channel completion counts, readable via Dma::diagCompletions.
+ 	void DmaChannel::finishTransfer()
+ 	{
++		++m_diagCompletions;
+ 		if(isDEClearedAfterTransfer())
+ 			m_dcr &= ~(1 << De);
+ 
+diff --git a/source/dsp56kEmu/dma.h b/source/dsp56kEmu/dma.h
+index 6cbf7f7..4f16590 100644
+--- a/source/dsp56kEmu/dma.h
++++ b/source/dsp56kEmu/dma.h
+@@ -170,6 +170,9 @@ namespace dsp56k
+ 		TWord m_dcolInit = 0;
+ 
+ 		int32_t m_pendingTransfer = 0;
++	public:
++		uint64_t m_diagCompletions = 0;	// DIAGNOSTIC: transfers finished on this channel
++	private:
+ 		uint64_t m_lastClock = 0;
+ 	};
+ 
+@@ -205,6 +208,7 @@ namespace dsp56k
+ 		const TWord& getDDR(const TWord _channel) const { return m_channels[_channel].getDDR(); }
+ 		const TWord& getDCO(const TWord _channel) const { return m_channels[_channel].getDCO(); }
+ 		const TWord& getDCR(const TWord _channel) const { return m_channels[_channel].getDCR(); }
++		uint64_t diagCompletions(const TWord _channel) const { return m_channels[_channel].m_diagCompletions; }
+ 
+ 		uint32_t exec() noexcept;
+ 		void setActiveChannel(TWord _channel);
 diff --git a/source/dsp56kEmu/dsp.cpp b/source/dsp56kEmu/dsp.cpp
 index 612813b..0d03b25 100644
 --- a/source/dsp56kEmu/dsp.cpp

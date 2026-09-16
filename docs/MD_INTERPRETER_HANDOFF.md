@@ -1265,3 +1265,57 @@ Gates added this session, all OFF by default: `MD_DRAIN_MINSTEP`,
 Diagnostics: `DSP_PC_HIST`, `DSP_DCR_TRACE`, `MD_DISASM`, `MD_STUCK_THRESHOLD`,
 `MD_NO_FRAMESYNC_FF`, and the `MD_DRAIN` / `MD_PORTC` / `MD_LINK` / `MD_IRQ`
 per-tick reports.
+
+## Session 3, part 15 — it is channel 5, the host-receive DMA, and nothing else
+
+Per-channel `finishTransfer()` counts on the mixer (`MD_DMACH`), same phase in
+both engines:
+
+```
+channel  source                    JIT@22  JIT@28   INT@22  INT@28
+ch0      Essi1Rx (codec)              705    1119      520     911
+ch1      Essi1Rx                       44      69       32      56
+ch2      Essi0Tx                     1411    2239     1040    1816
+ch3      unused                         0       0        0       0
+ch4      Essi0Rx (inter-DSP link)    1410    2238     1039    1816
+ch5      Hi08ReceiveDataFull (host)     0    4477        0     464
+```
+
+Every codec and link channel tracks the JIT to within about twenty percent — a
+modest, uniform lag, not a failure. **Channel 5 is the outlier and the only
+one**: the JIT has it running by tick 24 (831 completions in that tick alone,
+4477 by tick 28) while the interpreter does not start until tick 26 and reaches
+464, roughly a tenth.
+
+This unifies three separate measurements taken earlier in this session, which
+are all the same phenomenon seen from different angles:
+
+```
+ch5 completions            JIT 4477    interpreter 464
+DMA5 arming writes         JIT 17,908  interpreter 44
+host-receive ISR entries   JIT 15,204  interpreter 28
+```
+
+And it explains the cadence gap, since the mixer's interrupts are DMA
+completions: the missing ~1000 interrupts per tick ARE the missing ch5
+transfers.
+
+So the whole failure reduces to one statement: **the mixer's host-receive DMA
+chain never gets going under the interpreter.** The chain is self-sustaining by
+construction — a ch5 completion raises the interrupt whose handler re-arms ch5
+(P:9aa-9b5, disarm, wait HRDF at 9af, read, re-arm) — so it has to be started,
+and once missed it cannot restart itself. Everything downstream (link flood,
+Port C stall, DMA0 triple fault, 9da) follows from it.
+
+### Why this is the right place to resume
+
+The host transport work in parts 8-10 was aimed at the right subsystem but the
+wrong property. It fixed data loss and pacing; what ch5 needs is that a host
+word be PRESENT at the moment the handler arms the channel and reaches its HRDF
+wait. That is a phase relationship, not a throughput one, which is consistent
+with the host-transport fixes moving the symptom without curing it, and with
+`MD_PORTC_RELAX` + `MD_HOST_BACKLOG` together being worse than either alone.
+
+Resume by tracing, in both engines across ticks 23-26, the interleaving of:
+the ISR at 9aa/9af/9b3, ch5's DE bit, HRX depth, and UC word posts. The question
+is what the JIT has present at 9af that the interpreter does not.
