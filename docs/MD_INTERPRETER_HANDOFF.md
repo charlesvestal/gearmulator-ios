@@ -1132,3 +1132,78 @@ are identical to the JIT's through tick 23? The release gate
 (`m_mdOnDemandRendezvousActive` + the mixer's DMA4 enable window,
 mdhardware.cpp ~525 and ~962) is the place to look, with `MD_LINK` ring depth
 as the readout.
+
+## Session 3, part 13 — the failure is a mutual wait between the two DSPs
+
+Two final measurements close the loop.
+
+### The Port C release gate is refused only in the interpreter
+
+`MD_PORTC ... blockedByDma4` counts a waiting producer refused because the
+mixer's DMA4 receive window was shut:
+
+```
+tick     JIT blockedByDma4     INTERP blockedByDma4
+22              0                      457
+24              0                      479
+26              0                      567
+28              0                      860  (then frozen; mixer dead)
+```
+
+The JIT is NEVER refused, across the whole run. The interpreter is refused
+constantly.
+
+### The mixer's interrupt cadence collapses at exactly tick 24
+
+`MD_IRQ` counts injections and the pending-interrupt queue depth:
+
+```
+tick     JIT mixInject      INTERP mixInject
+23            823                  626
+24           1808  (+985)          699  (+73)
+30           8280  (~1100/tick)   1477  (frozen)
+```
+
+`mixPendMax = 1` in BOTH, so nothing is dropped and nothing blocks on the ring's
+semaphore. The mixer simply receives about thirteen times fewer interrupts.
+
+### The deadlock
+
+Interrupts on the mixer come from DMA completions. Putting the two measurements
+together with parts 11-12:
+
+```
+the producer waits in its Port C poll (P:bb-bf)
+  -> the edge is released only while the mixer's DMA4 window is open
+     -> DMA4 opens when the mixer services an ESSI0 receive
+        -> an ESSI0 receive requires the producer to transmit
+           -> but the producer is still waiting for the Port C edge
+```
+
+It is a rendezvous that only closes if both sides keep making progress. The JIT
+sustains it (~1100 mixer interrupts per tick, never refused at the gate). The
+interpreter never bootstraps it: at tick 24 the cadence fails to step up, the
+producer parks, the mixer's link ring floods to 1042 frames, its mainline stops
+completing between DMA0 interrupts, and the third one sends it to 9da.
+
+This is why every fix attempted so far moves the symptom without curing it. The
+host transport was genuinely broken and is now genuinely fixed, and it was never
+the thing keeping this rendezvous from closing.
+
+### What this means for the fix
+
+The rendezvous as written assumes the DSPs run fast relative to each other in a
+way only the JIT delivers. Options, in the order worth trying:
+
+1. Make the Port C release not depend on the mixer's DMA4 window being open at
+   the instant the producer happens to look. The window is a clear-DE one-shot;
+   gating a handshake on it is a race by construction. Releasing on "DMA4 has
+   been armed at least once since this edge was deferred" would keep the
+   ordering intent without requiring the two to coincide.
+2. Failing that, understand what starts the cadence at tick 24 in the JIT and
+   why the interpreter's equivalent never fires.
+
+Option 1 is a small, local change to mdhardware.cpp (~962) and is testable with
+the `MD_LINK` ring depth and `MD_IRQ` cadence as immediate readouts: a working
+fix should show the interpreter's mixInject stepping up at tick 24 and the
+producer's input ring staying near the JIT's steady 5.
