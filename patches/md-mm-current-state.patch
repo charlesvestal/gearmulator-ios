@@ -1,4 +1,4 @@
-### Snapshot of md-interp-work/mdmm, Wed Sep 16 20:10:44 CEST 2026
+### Snapshot of md-interp-work/mdmm, Wed Sep 16 20:14:51 CEST 2026
 
 diff --git a/base.cmake b/base.cmake
 index 0a880954..23428f2d 100644
@@ -86,7 +86,7 @@ index e5dffe6d..d450de65 100644
  		mdJucePlugin_VST3 mmJucePlugin_VST3
  		mdJucePlugin_AU mmJucePlugin_AU
 diff --git a/source/elektron/md/mdLib/mddsp.cpp b/source/elektron/md/mdLib/mddsp.cpp
-index 3cc8a7b4..aa5dc193 100644
+index 3cc8a7b4..8a3d5115 100644
 --- a/source/elektron/md/mdLib/mddsp.cpp
 +++ b/source/elektron/md/mdLib/mddsp.cpp
 @@ -1,4 +1,11 @@
@@ -451,7 +451,20 @@ index 3cc8a7b4..aa5dc193 100644
  		// A CVR write may not overtake a host command already in flight. Hold the current
  		// transaction in emulated time until RTI clears host-command-busy.
  		if(!hdi08().hostCommandBusy())
-@@ -354,8 +646,10 @@ namespace md
+@@ -345,6 +637,12 @@ namespace md
+ 		// Under the arbitration config, route the host-command vector through the DSP-side HDI08
+ 		// so it raises HCP and arms the handler hold as it injects (native DSP56303 host-command
+ 		// dispatch). Otherwise fall back to the legacy out-of-band inject (default uitest path).
++		// DIAGNOSTIC: host commands are what start the mixer's receive chain --
++		// a host command's vector is HV*2, and HV=9 lands on P:0x12, the jsr to
++		// the handler at 9aa that arms DMA channel 5.
++		++m_hostCmdCount;
++		if(_vba == 0x12)
++			++m_hostCmd12Count;
+ 		if(hdi08().hostCommandArbitration())
+ 			hdi08().writeHostCommand(_vba);
+ 		else
+@@ -354,8 +652,10 @@ namespace md
  	void Dsp::hdiSendIrqToDSP(const uint8_t _irq)
  	{
  		// Catch the DSP up to the UC's current machine time before the CVR is
@@ -464,7 +477,7 @@ index 3cc8a7b4..aa5dc193 100644
  			m_hardware.schedCatchUpDsp(m_index);
  		// Preserve Monomachine host-command ordering. Data words precede the next
  		// command, so drain the receive path before dispatching that command. Run the DSP
-@@ -388,6 +682,21 @@ namespace md
+@@ -388,6 +688,21 @@ namespace md
  
  		dispatchHostCommandInterrupt(_irq);
  
@@ -486,7 +499,7 @@ index 3cc8a7b4..aa5dc193 100644
  		hdiTransferDSPtoUC();
  	}
  
-@@ -403,6 +712,7 @@ namespace md
+@@ -403,6 +718,7 @@ namespace md
  		_isr = static_cast<uint8_t>((_isr & ~mc68k::Hdi08::Rxdf)
  			| (m_hdiUC.canReceiveData() ? 0 : mc68k::Hdi08::Rxdf));
  
@@ -495,7 +508,7 @@ index 3cc8a7b4..aa5dc193 100644
  		const auto hf23 = hdi08().readControlRegister() & 0x18;	// HF2 (bit3), HF3 (bit4)
  		_isr &= ~0x18;
 diff --git a/source/elektron/md/mdLib/mddsp.h b/source/elektron/md/mdLib/mddsp.h
-index c46ec22b..81f06e34 100644
+index c46ec22b..b0274f35 100644
 --- a/source/elektron/md/mdLib/mddsp.h
 +++ b/source/elektron/md/mdLib/mddsp.h
 @@ -2,6 +2,7 @@
@@ -544,7 +557,7 @@ index c46ec22b..81f06e34 100644
  		void    hdiSendIrqToDSP(uint8_t _irq);
  		void    dispatchHostCommandInterrupt(uint8_t _vba);
  		uint8_t hdiUcReadIsr(uint8_t _isr);
-@@ -91,6 +107,23 @@ namespace md
+@@ -91,6 +107,25 @@ namespace md
  		dsp56k::DspBoot                m_boot;
  
  		// Published once boot state is fully initialized; acquired by the scheduler.
@@ -558,6 +571,8 @@ index c46ec22b..81f06e34 100644
 +		uint64_t m_drainOverwrites = 0;	// DIAGNOSTIC: words lost to a full HRX
 +		uint64_t m_hostDmaArmed = 0;
 +		uint64_t m_hostDmaDisarmed = 0;
++		uint64_t m_hostCmdCount = 0;
++		uint64_t m_hostCmd12Count = 0;
 +		uint64_t m_drainDepth1 = 0;
 +		uint64_t m_isrReads = 0;
 +		uint64_t m_isrReadsAtLastWrite = 0;
@@ -1064,7 +1079,7 @@ index ddf2aae3..99edbe2c 100644
 +		XCODE_ATTRIBUTE_INFOPLIST_KEY_UIApplicationSceneManifest_Generation NO)
 +endif()
 diff --git a/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp b/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
-index 5204dedf..d98c6d6e 100644
+index 5204dedf..f86662fe 100644
 --- a/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
 +++ b/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
 @@ -4,6 +4,9 @@
@@ -1077,7 +1092,7 @@ index 5204dedf..d98c6d6e 100644
  
  #include <algorithm>
  #include <cstdlib>
-@@ -25,12 +28,259 @@ namespace
+@@ -25,12 +28,263 @@ namespace
  		constexpr uint32_t blockSize = 128;
  		const uint32_t frameCount = md::g_samplerate * _seconds;
  		for(uint32_t frame = 0; frame < frameCount; frame += blockSize)
@@ -1151,7 +1166,11 @@ index 5204dedf..d98c6d6e 100644
 +				// mainline blocks and cannot reset the DMA0 fault counter.
 +				{
 +					auto& mdma = _hardware.getDspMixer().getPeriph().getDMA();
-+					std::cerr << "MD_DMACH tick=" << tick;
++					std::cerr << "MD_HCMD tick=" << tick
++					<< " mixCmds=" << _hardware.getDspMixer().m_hostCmdCount
++					<< " mixVec12=" << _hardware.getDspMixer().m_hostCmd12Count
++					<< " prodCmds=" << _hardware.getDspProducer().m_hostCmdCount << '\n';
++				std::cerr << "MD_DMACH tick=" << tick;
 +					for(dsp56k::TWord ch=0; ch<6; ++ch)
 +						std::cerr << " ch" << ch << '=' << mdma.diagCompletions(ch);
 +					std::cerr << '\n';
@@ -1337,7 +1356,7 @@ index 5204dedf..d98c6d6e 100644
  		if(!_hardware.getUC().isPanelHandshakeComplete())
  			throw std::runtime_error(std::string(_phase) + ": panel handshake did not complete");
  		if(!_hardware.isFirmwareMidiReady())
-@@ -66,7 +316,8 @@ int main()
+@@ -66,7 +320,8 @@ int main()
  		require(fresh.isValid(), "fresh machine was invalid");
  		require(fresh.isFactoryFlashInitializationExpected(),
  			"fresh machine did not enter factory initialization");

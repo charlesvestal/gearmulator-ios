@@ -1319,3 +1319,81 @@ with the host-transport fixes moving the symptom without curing it, and with
 Resume by tracing, in both engines across ticks 23-26, the interleaving of:
 the ISR at 9aa/9af/9b3, ch5's DE bit, HRX depth, and UC word posts. The question
 is what the JIT has present at 9af that the interpreter does not.
+
+## Session 3, part 16 — the chain is MCU-driven, and that is the top of the causal map
+
+The handler that arms channel 5 is entered from vector P:0x12
+(`MD_DIS 12 bf080 jsr func_0009aa`). That is not a DMA vector: on the DSP56303 a
+host command's vector address is HV*2, so HV=9 lands on 0x12. The mixer's
+receive chain is therefore started by a HOST COMMAND from the ColdFire, not by
+anything the DSP does on its own.
+
+Counting them (`MD_HCMD`) settles the direction of causation:
+
+```
+                  mixCmds   mixVec12    ch5 completions
+JIT   @tick 24        913        831         831
+JIT   @tick 28       4919       4477        4477
+INT   @tick 24          0          0           0
+INT   @tick 28        520        474         464
+```
+
+`mixVec12` tracks ch5 completions one-for-one in both engines. Each host command
+drives exactly one channel-5 transfer. So nothing is wrong with the DSP-side
+chain at all — **the MCU simply does not issue the commands**. Over six seconds:
+
+```
+JIT   16,704 commands (15,204 on vector 0x12)   panel 4204
+INT      520 commands (   474 on vector 0x12)   panel 3380
+```
+
+A factor of thirty-two, with identical ucCycles at every tick. The ColdFire has
+exactly the same amount of emulated time and spends it doing different work.
+
+### Combination results, with mixVec12 as the readout
+
+```
+                                        bytes   mixCmds  mixVec12
+JIT reference @6s                        4204    16,704    15,204
+interpreter baseline                     3380       520       474
+MD_DRAIN_MINSTEP=1 (+ clamp off)         3160        45        41
+MD_PORTC_RELAX=1                         3380       520       474
+both                                     3160        45        41
+```
+
+Note the bug-1 fix makes this WORSE, not better: 45 commands against the
+baseline's 520. It genuinely corrects the per-word drain cost and puts the
+producer on the JIT's PC at tick 11, and it still reduces the thing that
+actually matters. That is a warning against treating "closer to the JIT on one
+metric" as progress.
+
+### The complete causal map, top to bottom
+
+```
+the ColdFire issues 32x fewer host commands to the mixer
+  -> the handler at 9aa (vector 0x12) runs 32x less often
+     -> DMA channel 5 is armed 32x less often
+        -> 32x fewer host-word transfers, so 32x fewer mixer interrupts
+           -> the mixer's DMA4 receive window is usually shut
+              -> the producer's Port C edge is not released; it parks at 0xbb
+                 -> it stops draining the ESSI link, which floods to 1042 frames
+                    -> the mixer's mainline can no longer complete between DMA0
+                       interrupts; the third one sends it to 9da
+```
+
+Every arrow in that chain is measured, not inferred. `MD_PORTC_RELAX` cures the
+link flood (1042 -> 113) precisely because it breaks one arrow, and the boot
+still fails because the arrows above it are untouched.
+
+### Where to resume
+
+The question is now entirely on the ColdFire side and is narrow: **what is the
+MCU waiting for that stops it issuing host commands to the mixer?** It has the
+same emulated time and diverges in behaviour, so it is reacting to something it
+reads back. The obvious candidate is the mixer's host flags HF2/HF3, which
+mdLib mirrors into the UC-visible ISR (`hdiUcReadIsr`, mddsp.cpp) — if the
+mixer never sets them the MCU never sends, and the loop never starts.
+
+Instrument the UC side: what does it read from the host port, and what does it
+branch on, across ticks 22-26 in both engines. `mixVec12` is the readout for any
+candidate fix; a working one has it climbing toward the JIT's ~2500/tick.
