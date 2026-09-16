@@ -863,3 +863,74 @@ give MD true 1-deep receive semantics rather than faking them over the 8192-word
 FIFO. Both touch shared HDI08 code used by Osirus and the XT, which currently
 rely on its always-ready behaviour, so they need their own validation. That is
 the next session's work; it is a design change, not a knob.
+
+## Session 3, part 9 — why the UC overruns, and four release policies that all fail
+
+### Measured: the ColdFire block-writes without checking the flags
+
+The flags are live (mc68k `Hdi08::isr()` calls the read callback on every read,
+and MD sets `setForceTxde(false)` so mdLib owns TXDE/TRDY). Instrumented the
+overflow directly:
+
+```
+MD_OVERFLOW dsp0 depth=2 isrReadsSinceLastWrite=0 totalIsrReads=97490
+MD_OVERFLOW dsp0 depth=3 isrReadsSinceLastWrite=0 totalIsrReads=97490
+...            depth=9  isrReadsSinceLastWrite=0 totalIsrReads=97490
+```
+
+The UC writes a whole block with **zero** ISR reads between words. It is not
+ignoring back-pressure it can see; it never looks, because on the real machine
+each word of that block is requested by the DSP asserting **HREQ**, and HREQ is
+unmodelled. So correct TXDE/TRDY cannot help: nothing reads them.
+
+This also explains why the held words are the right model — they stand in for a
+block still sitting in ColdFire memory, waiting to be requested word by word.
+
+### Four release policies, all wrong
+
+```
+refill HRX to depth 2                  -> machine FREEZES at tick 27
+                                          (TRDY means depth==0; UC never sees ready)
+refill only empty HRX, pump on
+  schedCatchUpDsp                      -> no fault, runs to tick 180, but the
+                                          mixer parks at 9af waiting for HRDF
+refill only empty HRX, pump every
+  schedStep                            -> 9da returns (ISR thrashes, mainline starved)
+pump driven by the HRX-read event
+  (setReadRxCallback)                  -> SEGFAULT at tick 24: pushing from inside
+                                          the HDI08's own read re-enters it
+same, deferred to a safe point via a
+  request flag consumed in schedStep   -> 9da again
+```
+
+The event-driven version is semantically the right model — one word released per
+word consumed, which is what HREQ does — and it still fails, because schedStep
+runs often enough that "one per consume" collapses back into "as fast as the DSP
+can take them". The missing constraint is not the COUNT but the TIMING: on
+hardware the UC's block transfer is stretched in UC time by the wait for each
+HREQ, so the UC falls behind and the mixer's mainline gets its cycles. Releasing
+the words without also charging the UC for the wait reproduces the overrun.
+
+So a correct fix has to slow the UC down, not just meter the words. That means
+the UC-side stall (the single-threaded `ucYieldLoop` equivalent) is not optional
+and cannot be substituted by any host-side queue policy. This is the same
+conclusion parts 3-7 reached from the other direction, now with the queue built
+and four policies measured.
+
+### State: unchanged defaults, everything gated
+
+```
+interpreter, no env overrides:   3380 bytes  (unchanged)
+JIT, no env overrides:          26894/22090  PASSES
+dsp56kTestRunner:                exit 0
+```
+
+`MD_HOST_BACKLOG` and `MD_DRAIN_MINSTEP` are both OFF by default.
+
+### The one genuinely new fact to build on
+
+With the queue on, data loss goes to zero and **the 9da fault disappears
+entirely** in the catch-up-pumped variant: mixer alive on its own program,
+producer in its mainline, for the whole run. That is the first configuration in
+this investigation where neither DSP dies. It stalls instead of faulting, which
+is a strictly better failure and the right base for the UC-stall work.
