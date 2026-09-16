@@ -1207,3 +1207,61 @@ Option 1 is a small, local change to mdhardware.cpp (~962) and is testable with
 the `MD_LINK` ring depth and `MD_IRQ` cadence as immediate readouts: a working
 fix should show the interpreter's mixInject stepping up at tick 24 and the
 producer's input ring staying near the JIT's steady 5.
+
+## Session 3, part 14 — relaxed gate fixes the link flood; cadence is the last wall
+
+Implemented `MD_PORTC_RELAX=1` (mdhardware.cpp): count DMA4 arming as an EDGE in
+schedStep, record the count when an edge is deferred, and release when the
+window is open **or has opened since** — instead of demanding it be open at the
+instant the producer happens to look, which is a race against a clear-DE
+one-shot.
+
+It works, as far as it goes:
+
+```
+                       producerIn ring peak     panel bytes
+default                        1042                 3380
+MD_PORTC_RELAX=1                113 (then 6,7,1)    3380
+```
+
+The link no longer floods. The rendezvous is no longer the binding constraint.
+
+The mixer still ends at 9da, because the interrupt cadence is unchanged:
+
+```
+mixInject by tick 30:   JIT 8280     interpreter 1477
+```
+
+Combining it with the host-transport work (`MD_PORTC_RELAX=1 MD_HOST_BACKLOG=1`)
+is WORSE, not better: 3160 bytes and mixInject only 862. The UC stall slows the
+UC, which further starves the very cadence that is already the problem. Do not
+assume these compose; they interact.
+
+### The last open question, stated precisely
+
+Between tick 23 and 24 the JIT's mixer interrupt rate steps up roughly tenfold
+(823 -> 1808 -> ~1100/tick thereafter) and the interpreter's does not
+(626 -> 699 -> ~75/tick). Interrupts on the mixer are DMA completions. Nothing
+is dropped or blocked (`mixPendMax = 1` in both). So the mixer's DMA channels
+simply complete far fewer transfers, and the question is which channel and why.
+
+Instrument per-channel `finishTransfer()` counts (dma.cpp) for the mixer in both
+engines across ticks 22-28, split by channel index. Channels in play, decoded
+earlier: ch0/ch1 Essi1Rx (codec), ch2 Essi0Tx, ch4 Essi0Rx (link), ch5
+Hi08ReceiveDataFull (host). That single measurement should name the channel that
+stops completing, and its request source then says whether the cause is the
+codec clock, the link, or the host port.
+
+### Closing state, session 3
+
+```
+interpreter, all gates OFF:   3380 bytes, mixerPC 9da   (unchanged)
+JIT:                         26894 / 22090  PASSES
+dsp56kTestRunner:             exit 0
+```
+
+Gates added this session, all OFF by default: `MD_DRAIN_MINSTEP`,
+`MD_HOST_BACKLOG`, `MD_PORTC_EDGE_QUEUE` (rejected), `MD_PORTC_RELAX`.
+Diagnostics: `DSP_PC_HIST`, `DSP_DCR_TRACE`, `MD_DISASM`, `MD_STUCK_THRESHOLD`,
+`MD_NO_FRAMESYNC_FF`, and the `MD_DRAIN` / `MD_PORTC` / `MD_LINK` / `MD_IRQ`
+per-tick reports.
