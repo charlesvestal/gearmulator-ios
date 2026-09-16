@@ -1856,3 +1856,41 @@ DSP56303 bootstrap ROM at 0xFF0000 about two billion instructions in, an address
 this emulator does not map. Interpreter support is unproven for BOTH Elektron
 targets. That is the honest state of "confidence with the MD interpreter for
 iPad".
+
+## Session 3, part 24 — granularity matched exactly, still no change
+
+One assumption was worth attacking directly: both engines are handed IDENTICAL
+emulated time by the scheduler (ucCycles and DSP cycles agree at every tick), so
+the difference between them cannot be timing. What differs is how far the DSP is
+advanced per host-port step. The interpreter offered only a fixed
+`maxInstructionsPerBlock` slice (overshoots a short block) or a single
+instruction (undershoots a long one); a JIT `exec()` advances exactly one BASIC
+BLOCK.
+
+Implemented `DSP::execBasicBlockStep()` (dsp.h) — run instructions until the PC
+leaves the straight line, i.e. real JIT block semantics — and wired it into the
+drain as `MD_DRAIN_BLOCK=1`.
+
+```
+MD_DRAIN_BLOCK=1                    HANGS (with the clamp)
+MD_DRAIN_BLOCK=1 + clamp off        3160 bytes, mixVec12=41
+MD_DRAIN_MINSTEP=1 + clamp off      3160 bytes, mixVec12=45
+baseline                            3380 bytes, mixVec12=474
+JIT                                 4204 bytes, mixVec12=15,204
+```
+
+Matching the JIT's granularity EXACTLY changes nothing, and is indistinguishable
+from the one-instruction variant. So granularity is not the determinant either,
+and the "the interpreter advances the DSP differently per host step" theory is
+now closed along with the timing one.
+
+Left in the tree, default off. It is the correct primitive to have regardless:
+if a future change needs JIT-equivalent stepping, this is it.
+
+### Final verification (all gates OFF)
+
+```
+dsp56kTestRunner:  exit 0
+MD interpreter:    3380 bytes, mixerPC 9da
+MD JIT:            26894 / 22090  PASSES
+```
