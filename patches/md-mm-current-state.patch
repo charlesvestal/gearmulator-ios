@@ -1,4 +1,4 @@
-### Snapshot of md-interp-work/mdmm, Wed Sep 16 20:58:20 CEST 2026
+### Snapshot of md-interp-work/mdmm, Wed Sep 16 21:34:58 CEST 2026
 
 diff --git a/base.cmake b/base.cmake
 index 0a880954..23428f2d 100644
@@ -1851,7 +1851,7 @@ index 6cbf7f7..4f16590 100644
  		uint32_t exec() noexcept;
  		void setActiveChannel(TWord _channel);
 diff --git a/source/dsp56kEmu/dsp.cpp b/source/dsp56kEmu/dsp.cpp
-index 612813b..0d03b25 100644
+index 612813b..8c38859 100644
 --- a/source/dsp56kEmu/dsp.cpp
 +++ b/source/dsp56kEmu/dsp.cpp
 @@ -1,6 +1,9 @@
@@ -2008,11 +2008,24 @@ index 612813b..0d03b25 100644
  		mem.setDSP(this);
  
  		m_disasm.addSymbols(mem);
-@@ -404,16 +537,24 @@ namespace dsp56k
+@@ -404,16 +537,37 @@ namespace dsp56k
  		m_currentOpLen = 1;
  
  		const TWord currentOp = pcCurrentInstruction;
 +		const auto instructionsBefore = m_instructions;
++
++		// SAFETY NET, interpreter side. The JIT path already traps a PC outside
++		// valid P memory (g_jitPcGuard -> onInvalidPC in dsp.h); the interpreter
++		// had no equivalent and indexed m_opcodeCache out of bounds instead, which
++		// is a wild read and a SIGSEGV with no diagnosis. Observed crashing
++		// mmBootFirmwareTest inside execOp. One compare on a hot path, branch
++		// never taken in normal operation.
++		if(ASMJIT_UNLIKELY(currentOp >= m_opcodeCache.size()))
++		{
++			onInvalidPC(currentOp);
++			return;
++		}
++
  		const auto& opCache = m_opcodeCache[currentOp];
  
  		exec_jump(opCache.op, op);
@@ -2035,7 +2048,7 @@ index 612813b..0d03b25 100644
  
  			if(g_traceSupported && pcCurrentInstruction == currentOp)
  				traceOp();
-@@ -580,6 +721,9 @@ namespace dsp56k
+@@ -580,6 +734,9 @@ namespace dsp56k
  		
  		sr_set( SR_LF );
  
@@ -2045,7 +2058,7 @@ index 612813b..0d03b25 100644
  		if constexpr(!g_useJIT)
  			m_cycles += getOpcodeCycles(pcCurrentInstruction);
  
-@@ -587,6 +731,19 @@ namespace dsp56k
+@@ -587,6 +744,19 @@ namespace dsp56k
  
  		traceOp();
  
@@ -2065,7 +2078,7 @@ index 612813b..0d03b25 100644
  		// __________________
  		//
  
-@@ -638,6 +795,14 @@ namespace dsp56k
+@@ -638,6 +808,14 @@ namespace dsp56k
  
  	bool DSP::rep_exec(const TWord _loopCount)
  	{
@@ -2080,7 +2093,7 @@ index 612813b..0d03b25 100644
  		const auto lcBackup = reg.lc;
  		reg.lc.var = _loopCount;
  
-@@ -1340,6 +1505,16 @@ namespace dsp56k
+@@ -1340,6 +1518,16 @@ namespace dsp56k
  
  	bool DSP::injectInterrupt(uint32_t _interruptVectorAddress)
  	{
