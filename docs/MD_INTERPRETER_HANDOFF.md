@@ -520,3 +520,56 @@ advances the DSP) at the same time.
 
 Test the fix against the true default baseline (3380) and the JIT (26894), and
 re-run the dsp56kTestRunner unit suite, which must stay at exit 0.
+
+## Session 3, part 4 — the UC->DSP stream silently loses words
+
+Instrumented the post itself: `writeRX` called while `hasRXData()` is still true
+overwrites a 1-deep HRX, i.e. a host word is lost. Counted as `mixLost/prodLost`
+in the `MD_DRAIN` line. Four-second runs:
+
+```
+                            mixMax    mixLost  prodLost
+interpreter, slack 1e9      100,048       539        57
+interpreter, slack 2048       2,102     6,275       889
+JIT,         slack 1e9          120         0         0
+JIT,         slack 2048         120        22       269
+```
+
+Two things follow.
+
+1. **The JIT loses nothing when unclamped.** Every word drains in <=120 cycles.
+   The interpreter's data loss is a CONSEQUENCE of its drain failing to
+   complete: the drain hits the 100k cap, returns anyway, and the post then
+   overwrites an unconsumed word.
+2. **The clamp trades lumps for data loss.** Tightening slack from 1e9 to 2048
+   cuts the worst lump 50x (100,048 -> 2,102) but loses 11x more words
+   (539 -> 6,275). It induces loss in the JIT too (0 -> 22/269). Neither knob
+   has a good setting; this is a design defect, not a tuning problem.
+
+### Correction: rxIrqEn=0 is normal, not the differentiator
+
+Part 3 read `rxIrqEn=0` as "no interrupt will ever deliver the word". Measuring
+the JIT at the same points shows `rxIrqEn=0` there as well — this firmware polls
+the HDI08 in software rather than using the receive interrupt. So that flag does
+not distinguish the engines. The open question is narrower and unchanged:
+
+**Why does the interpreter's mixer sometimes need >100,000 cycles to reach its
+HDI08 polling code, when the JIT's reaches it within 120?**
+
+Both engines are bit-identical up to tick 23 and the divergence begins with the
+first mixer-bound host traffic at tick 24, so the window is small and exactly
+reproducible.
+
+### Fix direction (unchanged, now better evidenced)
+
+Never overwrite an unconsumed HRX, and never run one DSP far past the shared
+clock. Both require what mdLib lacks and xtLib has: a way for the UC to WAIT in
+machine time. The single-threaded equivalent is to advance the whole machine in
+small steps through the normal scheduler while the UC is blocked, rather than
+running the target DSP in isolation from inside the UC's own execution.
+Reentrancy is the reason the current code does it the wrong way round:
+`writeWordToDsp` is called from `hdiTransferUCtoDSP`, which is itself inside
+`advance() -> schedStep() -> processUC()`.
+
+Validate any fix against: true default baseline 3380 bytes, JIT 26894, unit
+suite exit 0, AND `mixLost`/`prodLost` both 0.
