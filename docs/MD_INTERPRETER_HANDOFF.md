@@ -573,3 +573,81 @@ Reentrancy is the reason the current code does it the wrong way round:
 
 Validate any fix against: true default baseline 3380 bytes, JIT 26894, unit
 suite exit 0, AND `mixLost`/`prodLost` both 0.
+
+## Session 3, part 5 — bug 1 fixed in code; bug 2 traced to the host-receive DMA
+
+### Bug 1 now has a real fix (gated): `execMinimalStep()`
+
+`DSP::exec()` deliberately runs up to `maxInstructionsPerBlock` instructions "to
+match the JIT's granularity". That premise is wrong for a caller that must stop
+the instant a condition flips: a JIT block ends at real control flow, and the
+bootstrap loader's poll loop compiles to a handful of instructions, not 32. The
+HDI08 drain therefore overshot by a whole slice per host word.
+
+Added `DSP::execMinimalStep()` (dsp.h) — execJit() under the JIT, one
+`execInterpreter()` otherwise — and used it in the drain under
+**`MD_DRAIN_MINSTEP=1`**. Measured at the DEFAULT slice, no other overrides:
+
+```
+per host word:  145 cycles  ->  6.5-8.1     (JIT: 5.4)
+tick 11 producerPC:  14ff1b ->  14ff1e      (JIT: 14ff1e — now matching)
+tick 11 instr gap:  -362,003 ->  +28,455
+```
+
+It is NOT on by default: with the inline clamp active it deadlocks at tick 25,
+because a drain that gives up early leaves the word unconsumed and nothing else
+advances that DSP — the same failure the clamp comment already describes.
+Default behaviour is unchanged and verified (3380 bytes, unit suite exit 0).
+Turning this on for real requires reworking the clamp, which is the next job.
+
+### Bug 2: the mixer never arms its host-receive DMA channel
+
+Decoded the mixer's DMA channels properly (`DRS = (DCR >> 11) & 0x1f`; for the
+DSP56303 `Hi08ReceiveDataFull = 0b10011`, NOT the 56362's 0b10000):
+
+```
+ch0 c861c0 DE=1 Essi1Rx     ch1 d06510 DE=1 Essi1Rx
+ch2 8e5a50 DE=1 Essi0Tx     ch3 000000 DE=0 IRQA
+ch4 8e52c4 DE=1 Essi0Rx     ch5 0e9ac4 DE=0 Hi08ReceiveDataFull  <-- DISARMED
+```
+
+Channel 5 is the host-receive channel and its DE bit is clear, so no DMA moves
+the word and the drain waits for the core to poll. Counting the arm state at
+every host post to the mixer, same phase in both engines:
+
+```
+                 mixDmaArmed   mixDmaDisarmed   mixLost
+JIT   tick 24         9,024            2,005          0
+JIT   total         164,981           36,861          0
+INT   total               0              540        539
+```
+
+**The interpreter never arms it. Not once.** The JIT arms it 82% of the time,
+from the first tick of mixer host traffic, and loses nothing. Every interpreter
+post lands on a disarmed channel and almost every one loses its word.
+
+Important caveat, do not skip it: the mixer is still ALIVE when this happens
+(PCs 4c4, 4c9, 4cb, 4ce, 4d0, 5ab at ticks 24-28; it only reaches 9da at tick
+29), but its PCs differ from the JIT's (3c-43) well before, so the arming
+failure is DOWNSTREAM of the earlier divergence, not yet proven to be the first
+cause.
+
+Also corrected: `m_waitServeRXInterrupt` is NOT latched here (measured
+`waitServeRx=0`, `arb=1`, `dmaTrig=1`), so `HDI08::exec()` retries the DMA
+trigger every call. The trigger fires; the channel is simply disabled.
+
+### Next step
+
+Find where the mixer firmware writes DCR5 with DE set, and why the interpreter
+never executes it. `MD_DISASM="0,startHex,endHex,tick"` disassembles a range.
+The write is a `movep` to x:$FFFFF5 (DCR5) — the same form as the `movep
+#$c861c0,x:<<$ffffec` already seen in the DMA0 handler. Trap writes to the DMA
+control registers in both engines and compare.
+
+### Diagnostics added in this part
+
+- `DSP::execMinimalStep()` + `MD_DRAIN_MINSTEP=1` (off by default).
+- `MD_DRAIN` now also reports `mixLost/prodLost` and `mixDmaArmed/mixDmaDisarmed`.
+- `MD_STUCKDRAIN` / `MD_STUCKPC` / `MD_STUCKDMA` with `MD_STUCK_THRESHOLD`,
+  reporting PC histogram, HSR, arbitration, DMA trigger and all six DCRs.
+- `HDI08::diagWaitServeRx()` / `diagHasDmaReceiveTrigger()`.
