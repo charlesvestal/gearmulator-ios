@@ -1,5 +1,4 @@
-### Snapshot of md-interp-work/mdmm, Wed Sep 16 19:20:19 CEST 2026
-### Parent diff, then dsp56300 submodule.
+### Snapshot of md-interp-work/mdmm, Wed Sep 16 19:25:05 CEST 2026
 
 diff --git a/base.cmake b/base.cmake
 index 0a880954..23428f2d 100644
@@ -1330,8 +1329,50 @@ index 111c374..b80dcd7 100644
  		if (m_data)
  			mach_vm_deallocate(mach_task_self(), reinterpret_cast<mach_vm_address_t>(m_data), m_size);
  #endif
+diff --git a/source/dsp56kEmu/dma.cpp b/source/dsp56kEmu/dma.cpp
+index d6e58f1..c692a64 100644
+--- a/source/dsp56kEmu/dma.cpp
++++ b/source/dsp56kEmu/dma.cpp
+@@ -1,5 +1,8 @@
+ #include "dma.h"
+ 
++#include <cstdlib>
++#include <cstdio>
++
+ // DSP56300FM.pdf chapter 10 (page 181 ff)
+ 
+ #include "audio.h"
+@@ -100,6 +103,28 @@ namespace dsp56k
+ 		if(m_dcr == _controlRegister)
+ 			return;
+ 
++		// DIAGNOSTIC (env-gated): DSP_DCR_TRACE=1 logs every DMA control register
++		// change with the source, so "which engine arms the host-receive channel,
++		// and from where" can be answered directly instead of inferred.
++		{
++			static const bool s_trace = []() {
++				const char* e = std::getenv("DSP_DCR_TRACE");
++				return e && *e && *e != '0';
++			}();
++			if(s_trace)
++			{
++				const auto drsOld = (m_dcr >> 11) & 0x1f;
++				const auto drsNew = (_controlRegister >> 11) & 0x1f;
++				std::fprintf(stderr, "DCR_TRACE ch=%u old=%06x new=%06x deOld=%u deNew=%u "
++					"drsOld=%02x drsNew=%02x pc=%06x cycles=%llu\n",
++					m_index, m_dcr, _controlRegister,
++					unsigned((m_dcr >> 23) & 1), unsigned((_controlRegister >> 23) & 1),
++					unsigned(drsOld), unsigned(drsNew),
++					m_peripherals.getDSP().getPC().toWord(),
++					static_cast<unsigned long long>(m_peripherals.getDSP().getCycles()));
++			}
++		}
++
+ 		m_dma.removeTriggerTarget(this);
+ 
+ 		m_dcr = _controlRegister;
 diff --git a/source/dsp56kEmu/dsp.cpp b/source/dsp56kEmu/dsp.cpp
-index 612813b..8f925b8 100644
+index 612813b..ba59f8c 100644
 --- a/source/dsp56kEmu/dsp.cpp
 +++ b/source/dsp56kEmu/dsp.cpp
 @@ -1,6 +1,9 @@
@@ -1383,7 +1424,7 @@ index 612813b..8f925b8 100644
 +					}
 +					std::sort(v.begin(), v.end(), std::greater<>());
 +					std::fprintf(f, "total %llu distinct %zu\n", static_cast<unsigned long long>(total), v.size());
-+					for(size_t i=0; i<v.size() && i<200; ++i)
++					for(size_t i=0; i<v.size() && i<4000; ++i)
 +						std::fprintf(f, "%06x %llu %.2f%%\n", v[i].second,
 +							static_cast<unsigned long long>(v[i].first),
 +							total ? 100.0 * double(v[i].first) / double(total) : 0.0);
