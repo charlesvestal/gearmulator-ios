@@ -1,4 +1,4 @@
-### Snapshot of md-interp-work/mdmm, Wed Sep 16 20:46:18 CEST 2026
+### Snapshot of md-interp-work/mdmm, Wed Sep 16 20:58:20 CEST 2026
 
 diff --git a/base.cmake b/base.cmake
 index 0a880954..23428f2d 100644
@@ -86,7 +86,7 @@ index e5dffe6d..d450de65 100644
  		mdJucePlugin_VST3 mmJucePlugin_VST3
  		mdJucePlugin_AU mmJucePlugin_AU
 diff --git a/source/elektron/md/mdLib/mddsp.cpp b/source/elektron/md/mdLib/mddsp.cpp
-index 3cc8a7b4..cf135e03 100644
+index 3cc8a7b4..5938ce0d 100644
 --- a/source/elektron/md/mdLib/mddsp.cpp
 +++ b/source/elektron/md/mdLib/mddsp.cpp
 @@ -1,4 +1,11 @@
@@ -183,7 +183,7 @@ index 3cc8a7b4..cf135e03 100644
  		if(_needMoreData)
  		{
  			// A blocking host read needs its peer to make progress on this single
-@@ -302,27 +358,263 @@ namespace md
+@@ -302,27 +358,267 @@ namespace md
  		writeWordToDsp(_word);
  	}
  
@@ -316,12 +316,16 @@ index 3cc8a7b4..cf135e03 100644
 +		// DIAGNOSTIC: record where the DSP actually goes during a drain, so a drain
 +		// that never reaches the firmware's HDI08 poll can be explained rather than
 +		// guessed at. Cheap in practice: almost every drain is a single exec().
++		// Gated for the same reason as m_ucPollPc: threaded paths must not build
++		// this per-call map.
++		static const bool s_drainPcTrace = std::getenv("MD_STUCK_THRESHOLD") != nullptr;
 +		std::map<uint32_t, uint32_t> drainPcs;
 +		if(!postOnly && !threaded())
 +		{
 +			while(hdi08().hasRXData() && m_dsp.getCycles() < clampStop)
 +			{
-+				++drainPcs[m_dsp.getPC().toWord()];
++				if(s_drainPcTrace)
++					++drainPcs[m_dsp.getPC().toWord()];
 +				// MD_DRAIN_MINSTEP=1: stop as soon as the DSP consumes the word
 +				// instead of running a whole slice. Measured on the MD loader this
 +				// takes the cost of a host word from 145 cycles to 6.5, against the
@@ -451,7 +455,7 @@ index 3cc8a7b4..cf135e03 100644
  		// A CVR write may not overtake a host command already in flight. Hold the current
  		// transaction in emulated time until RTI clears host-command-busy.
  		if(!hdi08().hostCommandBusy())
-@@ -345,6 +637,12 @@ namespace md
+@@ -345,6 +641,12 @@ namespace md
  		// Under the arbitration config, route the host-command vector through the DSP-side HDI08
  		// so it raises HCP and arms the handler hold as it injects (native DSP56303 host-command
  		// dispatch). Otherwise fall back to the legacy out-of-band inject (default uitest path).
@@ -464,7 +468,7 @@ index 3cc8a7b4..cf135e03 100644
  		if(hdi08().hostCommandArbitration())
  			hdi08().writeHostCommand(_vba);
  		else
-@@ -354,8 +652,10 @@ namespace md
+@@ -354,8 +656,10 @@ namespace md
  	void Dsp::hdiSendIrqToDSP(const uint8_t _irq)
  	{
  		// Catch the DSP up to the UC's current machine time before the CVR is
@@ -477,7 +481,7 @@ index 3cc8a7b4..cf135e03 100644
  			m_hardware.schedCatchUpDsp(m_index);
  		// Preserve Monomachine host-command ordering. Data words precede the next
  		// command, so drain the receive path before dispatching that command. Run the DSP
-@@ -388,6 +688,21 @@ namespace md
+@@ -388,6 +692,21 @@ namespace md
  
  		dispatchHostCommandInterrupt(_irq);
  
@@ -499,7 +503,7 @@ index 3cc8a7b4..cf135e03 100644
  		hdiTransferDSPtoUC();
  	}
  
-@@ -403,8 +718,17 @@ namespace md
+@@ -403,8 +722,22 @@ namespace md
  		_isr = static_cast<uint8_t>((_isr & ~mc68k::Hdi08::Rxdf)
  			| (m_hdiUC.canReceiveData() ? 0 : mc68k::Hdi08::Rxdf));
  
@@ -507,7 +511,12 @@ index 3cc8a7b4..cf135e03 100644
 +		// DIAGNOSTIC: WHERE is the ColdFire when it polls? It burns ~97k polls by
 +		// tick 18 against the JIT's ~6k in identical emulated cycles, so it is
 +		// sitting in a loop the JIT does not sit in.
-+		++m_ucPollPc[m_hardware.getUC().getPC() & 0xffffff];
++		// Gated: this map is mutated from the UC's context, and the MM paths run
++		// the DSP on its own thread, so an unsynchronised std::map here is a data
++		// race (observed: SIGSEGV in mmBootFirmwareTest). Diagnostic only.
++		static const bool s_ucPollTrace = std::getenv("MD_UCPOLL_TRACE") != nullptr;
++		if(s_ucPollTrace && !threaded())
++			++m_ucPollPc[m_hardware.getUC().getPC() & 0xffffff];
  		// Mirror the DSP's host flags HF2/HF3 into the UC-visible ISR.
  		const auto hf23 = hdi08().readControlRegister() & 0x18;	// HF2 (bit3), HF3 (bit4)
 +		// DIAGNOSTIC: the UC branches on these; if the mixer never raises them the
@@ -517,7 +526,7 @@ index 3cc8a7b4..cf135e03 100644
  		_isr &= ~0x18;
  		_isr |= static_cast<uint8_t>(hf23);
  
-@@ -448,8 +772,15 @@ namespace md
+@@ -448,8 +781,15 @@ namespace md
  		}
  
  		const bool hasTx = hdi08().hasTX();

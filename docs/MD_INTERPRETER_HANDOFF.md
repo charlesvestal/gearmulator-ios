@@ -1670,3 +1670,49 @@ other synths sharing this code.
 `MD_DSP_LEAD` is left in the tree, default 1.0, as the cheapest way for a
 future session to re-test any hypothesis about relative speed without rebuilding
 the argument from scratch.
+
+## Session 3, part 21 — Monomachine under the interpreter: JIT passes, interpreter SIGSEGVs
+
+Widening the question from MD to "does the interpreter path work at all", since
+that is what iPad actually needs:
+
+```
+mmBootFirmwareTest, JIT:          PASS, cold boot, edited kit and state-restored boot
+mmBootFirmwareTest, interpreter:  SIGSEGV (exit 139), consistently, after
+                                  ~5,048,000 host words
+```
+
+Up to the crash the MM transport looks healthy — `drainCyclesPerWord` 0.4-1.1,
+nothing like MD's 145 — so this is not the MD drain problem reappearing.
+
+**Attribution is not fully settled.** The crash could in principle come from
+this session's instrumentation. Evidence that it does not:
+
+- every behavioural change is env-gated and OFF in this run;
+- the non-gated additions are plain counter increments;
+- the two genuinely thread-unsafe diagnostics (`m_ucPollPc`, the per-drain
+  `drainPcs` map) were gated behind env vars specifically because MM runs the
+  DSP on its own thread — and the crash persists unchanged with them off;
+- the JIT build, which carries exactly the same instrumentation, PASSES.
+
+That last point is the strongest: identical instrumentation, one engine crashes
+and the other does not. It points at the interpreter path rather than at the
+counters. It is not proof. A pristine-tree run would settle it; note that
+`git stash -u` REMOVES the untracked `mdBench.cpp` / `iosmain.mm` that CMake
+references and breaks the build — restore with `git stash pop` (verified
+recoverable, nothing was lost) or exclude untracked files.
+
+### What this means for the original question
+
+"Confidence with the MD interpreter for iPad" is not just unmet for MD; the
+interpreter path has a second, independent failure on the Monomachine, which is
+the machine that was previously believed to be the closer one. Anyone planning
+iOS work on this fork should treat interpreter support as unproven for BOTH
+Elektron targets until these are separated and fixed.
+
+Test command:
+
+```sh
+GEARMULATOR_MM_FIRMWARE_BIN=<MM OS 1.32b .bin> \
+  build-interp/source/elektron/md/mdLibTest/mmBootFirmwareTest
+```
