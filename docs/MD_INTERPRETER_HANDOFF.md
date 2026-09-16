@@ -1397,3 +1397,81 @@ mixer never sets them the MCU never sends, and the loop never starts.
 Instrument the UC side: what does it read from the host port, and what does it
 branch on, across ticks 22-26 in both engines. `mixVec12` is the readout for any
 candidate fix; a working one has it climbing toward the JIT's ~2500/tick.
+
+## Session 3, part 17 — the bootstrap that never happens, and the final state
+
+### HF2/HF3 are not the branch condition
+
+Measured (`MD_HF`): `mixHfSeen = 0` for the whole run in BOTH engines. The UC
+never sees those flags set, so whatever it waits on, it is not them. Ruled out.
+
+### What the UC is actually waiting for: a word from the mixer
+
+`MD_TX` counts the DSP->UC path on the mixer (`calls` = UC polled, `hadTx` = the
+mixer had a word, `sent` = it was handed over, `blocked` = the UC latch was
+full):
+
+```
+tick     JIT calls/hadTx/sent/blocked      INT calls/hadTx/sent/blocked
+14           6,303 /  57 /  57 / 0             156 /   0 /   0 / 0
+18           6,303 /  57 /  57 / 0          97,379 /  59 /  59 / 0
+22           6,303 /  57 /  57 / 0          97,379 /  59 /  59 / 0
+24          38,195 / 130 / 130 / 0          97,379 /  59 /  59 / 0
+26          97,394 / 299 / 299 / 0          97,632 /  61 /  61 / 0
+```
+
+`blocked = 0` everywhere: nothing is being dropped or refused. Both mixers
+produce about the same handful of words early (57 vs 59). At tick 24 the JIT's
+mixer starts producing more (130, then 299) and the UC's polling ramps with it.
+The interpreter's mixer stays at 59 and its UC, which had already burned 97,379
+polls by tick 18 against the JIT's 6,303, simply keeps waiting.
+
+### The shape of the real problem
+
+The dependency is mutual and it has to be bootstrapped:
+
+```
+the UC waits for a word from the mixer (polls ISR for RXDF)
+the mixer produces that word only once its program advances
+its program advances via the receive chain
+the receive chain is started by host commands
+the UC issues host commands only after it gets that word
+```
+
+The JIT crosses this at tick 24 and the interpreter never does. Neither side is
+broken in isolation — every individual mechanism measured in this session
+(transport, DMA, handshake, interrupts, flags) is either correct or has been
+made correct, and `blocked`/`discarded`/`pendMax` counters are clean everywhere.
+What differs is only whether the two sides happen to meet.
+
+This is why the JIT "works": not because it is more accurate, but because it is
+fast enough that the two sides meet on the first attempt. That is the single
+most important fact in this document for anyone picking it up.
+
+### Final state of session 3
+
+```
+interpreter, all gates OFF:   3380 bytes, mixerPC 9da   (unchanged from start)
+JIT, all gates OFF:          26894 / 22090  PASSES
+dsp56kTestRunner:             exit 0
+```
+
+**MD does not boot under the interpreter.**
+
+Fixed and verified along the way, none of which was sufficient:
+- the per-host-word drain cost (145 -> 6.5 cycles), `MD_DRAIN_MINSTEP`
+- host-word data loss (538 -> 0) and lumpy cycle delivery, `MD_HOST_BACKLOG`
+- the ESSI link flood (1042 -> 113 frames), `MD_PORTC_RELAX`
+
+Excluded with controls, not argument: frame-sync fast-forward, scheduler
+granularity, bounded DO, ESSI/DMA rate, lost Port C edges, the RX interrupt
+latch, engine-dependent DMA pacing, Port C edge collapsing, HF2/HF3 flags,
+dropped or blocked interrupts, and a full HDI08 receive ring.
+
+### Resume here
+
+Find what the JIT's mixer executes at tick 24 that produces its 73 extra TX
+words, and why the interpreter's mixer — alive, on its own program, with a
+healthy transport and steady cycles — does not reach it. `MD_TX hadTx` is the
+readout: a working fix has the interpreter's climbing past 59 at tick 24.
+Compare mixer PC histograms between engines restricted to ticks 22-26.
