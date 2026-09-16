@@ -1543,3 +1543,60 @@ that. The remaining work is on the ColdFire side: establish what the MCU is
 executing while it burns 97,379 host-port polls by tick 18 (the JIT burns
 6,303 in the same emulated cycles), and what condition would let it proceed to
 issue command 6. That is a ColdFire trace, not another DSP experiment.
+
+## Session 3, part 19 — the ColdFire is stuck at one address: ucPC 0x734
+
+Histogrammed the ColdFire's PC at every host-port ISR read (`MD_UCPOLL`,
+mddsp.cpp `hdiUcReadIsr`). Tick 18, same phase in both engines:
+
+```
+ucPC      JIT        INTERP
+0x734    5,618      96,694     <-- the only difference
+0x720      389         389
+0x81e      232         232
+0x8e4        4           4
+0x93a        1           1
+```
+
+Every other poll site is IDENTICAL, to the count. The MCU's divergence is one
+loop, at one address. It is not generally behind or generally slow: it does
+exactly the same work everywhere else and spins seventeen times longer in this
+single place, waiting for a condition the interpreter never satisfies.
+
+Combined with parts 16-18, the chain is now pinned end to end with a named
+address at each link:
+
+```
+the ColdFire spins at ucPC 0x734 waiting on the mixer's host port
+  -> it therefore issues 474 host commands instead of 15,204
+     -> the mixer never receives command code 6 (its dispatch at P:0x93)
+        -> it never enters the 0xa00 loop, and never arms DMA channel 5
+           -> ~13x fewer mixer interrupts; the DMA4 receive window stays shut
+              -> the producer is never released from its Port C poll at P:0xbb
+                 -> the ESSI link floods (1042 frames against a steady 5)
+                    -> the mixer's mainline cannot complete between DMA0
+                       interrupts; the third sends it to P:0x9da
+```
+
+### What to do next, precisely
+
+Disassemble the ColdFire at 0x734 and find which ISR bit it tests. The bits it
+can see are RXDF (a word from the mixer), TXDE/TRDY (transmit ready, derived
+from HRX depth in `hdiUcReadIsr`) and HF2/HF3 (measured: never set in either
+engine, so not these). RXDF is the likely one, since `MD_TX` shows the mixer
+sending 57-59 words early in both engines and then only the JIT's continuing.
+
+The two candidate readings, which the disassembly will settle:
+
+1. The MCU waits for a word the mixer would only send after processing a
+   command the MCU has not sent — a genuine bootstrap deadlock that the JIT
+   escapes on timing alone. If so the fix is in how the rendezvous is modelled,
+   not in any single mechanism.
+2. The MCU waits on a flag mdLib derives incorrectly. `hdiUcReadIsr` composes
+   RXDF from `canReceiveData()` and TXDE/TRDY from `rxData().size()`; the HREQ
+   path it mentions is explicitly unmodelled. A wrong bit here would strand the
+   MCU exactly like this while every other poll site behaved normally, which
+   matches the measurement well.
+
+Reading 2 is the cheaper one to test and fits the evidence that every other UC
+poll site is identical. Start there.
