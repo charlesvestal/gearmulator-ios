@@ -1014,3 +1014,60 @@ interpreter, all gates OFF:   3380 bytes  (unchanged default)
 JIT:                         26894/22090  PASSES
 dsp56kTestRunner:             exit 0
 ```
+
+## Session 3, part 11 — the fifth cause: the inter-DSP ESSI link floods
+
+Added `MD_LINK` per-tick reporting of both ESSI0 audio input rings
+(panelReadinessFirmwareTest). With the host transport already healthy (UC stall
+on, cycles steady, no loss), the link tells a clear story:
+
+```
+tick     JIT mixerIn/producerIn      INTERP mixerIn/producerIn
+22            0 / 5                        0 / 1
+23            0 / 6                        0 / 1
+24            0 / 5                        0 / 113     <-- starts to back up
+25            2 / 5                        0 / 6
+26            0 / 5                        0 / 1042    <-- floods
+27            0 / 5                        0 / 0       <-- fault; link dead
+28-30       0-1 / 5-6                      0 / 0
+```
+
+The JIT holds a steady 5-6 frames in the producer's input ring for the whole
+run. The interpreter backs up to 113, then 1042, then collapses to nothing at
+exactly the tick the mixer reaches 9da.
+
+The producer's PC through that window is 0xbb/0xbd — its **Port C poll loop**,
+waiting for the mixer->producer block sync (bit 1 of x:$FFFFBD). So the
+sequence is:
+
+1. the producer stalls in its Port C poll,
+2. it therefore stops consuming the ESSI link,
+3. the mixer keeps transmitting, so the producer's input ring floods
+   (1042 frames against a healthy 5),
+4. the link jams, the mixer's mainline can no longer complete,
+5. three DMA0 interrupts land without a completion and the firmware jumps
+   to 9da.
+
+This supersedes the DMA-pacing guess at the end of part 10: DMA0's period was
+already measured identical in both engines (147,456 cycles), and cycles per
+instruction match to three decimals (4.988 vs 4.990), so DMA pacing is
+inaccurate in absolute terms but NOT engine-dependent. The link is.
+
+### Where this rejoins earlier evidence
+
+Part 2 measured the Port C handshake and found `deferred == released`, zero
+discards, and the two engines IDENTICAL through tick 23 — then the interpreter
+emitting a burst of 378 edges at tick 24 against a steady 136-140. That is the
+same tick the link starts backing up. The Port C rendezvous
+(`m_mdOnDemandRendezvousActive`, mdhardware.cpp ~525 and ~962) gates the edge on
+the mixer's DMA4 being enabled, and releases it only when the producer READS
+Port C. That is the mechanism to examine next, with the link depth as the
+readout.
+
+### Next step
+
+Instrument the Port C rendezvous and the link together across ticks 23-27:
+每 edge deferred/released, the mixer's DCR4 enable state at each, the producer's
+PC, and both ring depths. The question is why the producer stops being released
+from its poll at tick 24, given the handshake counters were still identical at
+tick 23.
