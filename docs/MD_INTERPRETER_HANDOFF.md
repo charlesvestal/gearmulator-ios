@@ -651,3 +651,83 @@ control registers in both engines and compare.
 - `MD_STUCKDRAIN` / `MD_STUCKPC` / `MD_STUCKDMA` with `MD_STUCK_THRESHOLD`,
   reporting PC histogram, HSR, arbitration, DMA trigger and all six DCRs.
 - `HDI08::diagWaitServeRx()` / `diagHasDmaReceiveTrigger()`.
+
+## Session 3, part 6 — the host-receive ISR chain, and the HRX depth model
+
+### Correction: BOTH engines arm the host-receive channel
+
+Part 5 said the interpreter "never arms" DMA channel 5. That was measured at
+POST time only. Tracing every DCR write (`DSP_DCR_TRACE=1`, dma.cpp) shows both
+engines arming it, from the same routine. The difference is RATE:
+
+```
+arming writes (DE 0->1, DRS=0x13), 4 second run:
+  JIT          17,908     interval ~236 - 12,800 cycles
+  interpreter      44     interval ~1,900,000 - 2,200,000 cycles
+```
+
+Channel 5 is a clear-DE one-shot: it fires, DE clears, the ISR re-arms it. So
+"disarmed at every post" is the symptom of a stalled re-arm chain, not of the
+firmware never arming it.
+
+### The re-arm chain, disassembled
+
+```
+9aa: movep x:<<$ffffc6,x:<<$ffffda   ; read HRX into the DMA5 registers
+9ac: movep #>$0e9ac4,x:<<$ffffd8     ; DCR5 = DE 0  (disarm)
+9af: brclr #$0,x:<<$ffffc3,*         ; SPIN until HSR bit0 (HRDF) - next host word
+9b1: movep x:<<$ffffc6,x:<<$ffffd9   ; read that word
+9b3: movep #>$8e9ac4,x:<<$ffffd8     ; DCR5 = DE 1  (re-arm)
+9b5: rti
+```
+
+It is an ISR that blocks waiting for the next host word before re-arming. While
+it spins there the mixer's mainline cannot run, so DMA0 keeps incrementing
+x:$647 with nothing to reset it. The chain is self-sustaining only while host
+words keep arriving: a DMA5 completion raises the interrupt that re-arms DMA5.
+
+Exact execution counts on the mixer (PC histogram; note the dump was capped at
+the top 200 PCs, which earlier hid these — the cap is now 4000):
+
+```
+            9aa/9b1 (ISR entries)    9af (the spin)    9c2 (DMA0 audio)
+JIT                  15,204                19,683       normal
+interpreter              28                    28        1,053
+```
+
+The interpreter's host-receive ISR runs **28 times against the JIT's 15,204**,
+and does not spin when it runs. Audio DMA0 keeps going. So the host-word path
+to the mixer stops almost immediately while the rest of the machine continues,
+and because the re-arm lives inside the ISR that only a completed transfer can
+trigger, it cannot restart once broken.
+
+### Structural root: HRX is modelled as an 8192-word FIFO
+
+```cpp
+RingBuffer<TWord, 8192, true> m_dataRX;   // hdi08.h
+void HDI08::writeRX(...) { m_dataRX.waitNotFull(); m_dataRX.push_back(d); }
+```
+
+A real DSP56303 HI08 has a ONE-WORD HRX plus a host-side latch. mdLib knows
+this — writeWordToDsp's own comment says "a host latch and a one-word HRX" — and
+the entire inline drain exists to fake 1-deep semantics on top of a 8192-deep
+FIFO. Two consequences, both observed:
+
+- HRDF stays asserted while ANY queued word exists, so the firmware's 1-deep
+  handshake at 9af/9b3 does not see the edges it expects.
+- `waitNotFull()` BLOCKS. That is the mechanism behind every "HANG" in this
+  file, including the clamp deadlocks and `MD_DRAIN_MINSTEP` at tick 25.
+
+This is shared code, so it does not by itself explain JIT vs interpreter; it
+explains why mdLib needs the drain at all, and why every attempt to bound the
+drain either lumps or deadlocks. The engines differ in timing on top of it, and
+the interpreter falls off the cliff.
+
+### Recommended next move
+
+Give MD true 1-deep receive semantics instead of compensating for the FIFO:
+post a word only when HRX is genuinely empty, and make the UC wait in machine
+time when it is not (the single-threaded `ucYieldLoop` equivalent). That
+addresses the lumps, the data loss and the deadlocks together, rather than
+trading them against each other. Until then no clamp setting can work: the
+measurements in parts 3-5 show the trade is forced.
