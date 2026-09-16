@@ -1,4 +1,4 @@
-### Snapshot of md-interp-work/mdmm, Wed Sep 16 19:27:01 CEST 2026
+### Snapshot of md-interp-work/mdmm, Wed Sep 16 19:43:06 CEST 2026
 
 diff --git a/base.cmake b/base.cmake
 index 0a880954..23428f2d 100644
@@ -86,7 +86,7 @@ index e5dffe6d..d450de65 100644
  		mdJucePlugin_VST3 mmJucePlugin_VST3
  		mdJucePlugin_AU mmJucePlugin_AU
 diff --git a/source/elektron/md/mdLib/mddsp.cpp b/source/elektron/md/mdLib/mddsp.cpp
-index 3cc8a7b4..09d9a1ff 100644
+index 3cc8a7b4..a3e948d5 100644
 --- a/source/elektron/md/mdLib/mddsp.cpp
 +++ b/source/elektron/md/mdLib/mddsp.cpp
 @@ -1,4 +1,11 @@
@@ -156,7 +156,56 @@ index 3cc8a7b4..09d9a1ff 100644
  		if(_needMoreData)
  		{
  			// A blocking host read needs its peer to make progress on this single
-@@ -309,20 +345,191 @@ namespace md
+@@ -302,27 +338,240 @@ namespace md
+ 		writeWordToDsp(_word);
+ 	}
+ 
++	// MD_HOST_BACKLOG=1: hold words the DSP has no room for instead of destroying
++	// them. The real HI08 is a host latch in front of a one-word HRX, so at most
++	// two words may be in flight; beyond that the part asserts back-pressure over
++	// HREQ, which this emulator does not model (see hdiUcReadIsr). Without it the
++	// UC keeps writing and overwrites unconsumed words - measured 538 lost on the
++	// mixer under the interpreter, none under the JIT. This queues the excess and
++	// releases it as the DSP drains, so no word is lost and HRX never exceeds the
++	// real depth.
++	bool Dsp::hostBacklogEnabled()
++	{
++		static const bool s_enabled = []() {
++			const char* e = std::getenv("MD_HOST_BACKLOG");
++			return e && *e && *e != '0';
++		}();
++		return s_enabled;
++	}
++
++	void Dsp::pumpHostBacklog()
++	{
++		// Refill only an EMPTY HRX. Topping it up to the full latch+HRX depth of 2
++		// keeps the depth permanently non-zero, and TRDY is defined as depth == 0,
++		// so the UC never sees clear-to-send and spins forever (observed: machine
++		// frozen at tick 27). Leaving it empty between words lets TRDY assert.
++		while(!m_hostBacklog.empty() && hdi08().rxData().empty())
++		{
++			const auto w = m_hostBacklog.front();
++			m_hostBacklog.pop_front();
++			hdi08().writeRX(&w, 1);
++		}
++	}
++
+ 	void Dsp::writeWordToDsp(const uint32_t _word)
+ 	{
++		if(hostBacklogEnabled())
++		{
++			pumpHostBacklog();
++			if(!m_hostBacklog.empty() || !hdi08().rxData().empty())
++			{
++				m_hostBacklog.push_back(_word);
++				if(m_hostBacklog.size() > m_hostBacklogMax)
++					m_hostBacklogMax = m_hostBacklog.size();
++				return;
++			}
++		}
+ 		// The DSP56303 HI08 host data path has a host latch and a one-word HRX. Before placing
+ 		// a word in HRX, advance the target DSP until the previous word drains, bounded by the
  		// scheduler clamp. This preserves receive ordering without a wall-clock
  		// wait or an unbounded host-side FIFO.
  		const uint64_t startCycle = m_dsp.getCycles();
@@ -352,7 +401,7 @@ index 3cc8a7b4..09d9a1ff 100644
  		// A CVR write may not overtake a host command already in flight. Hold the current
  		// transaction in emulated time until RTI clears host-command-busy.
  		if(!hdi08().hostCommandBusy())
-@@ -354,8 +561,10 @@ namespace md
+@@ -354,8 +603,10 @@ namespace md
  	void Dsp::hdiSendIrqToDSP(const uint8_t _irq)
  	{
  		// Catch the DSP up to the UC's current machine time before the CVR is
@@ -365,7 +414,7 @@ index 3cc8a7b4..09d9a1ff 100644
  			m_hardware.schedCatchUpDsp(m_index);
  		// Preserve Monomachine host-command ordering. Data words precede the next
  		// command, so drain the receive path before dispatching that command. Run the DSP
-@@ -388,6 +597,21 @@ namespace md
+@@ -388,6 +639,21 @@ namespace md
  
  		dispatchHostCommandInterrupt(_irq);
  
@@ -388,10 +437,18 @@ index 3cc8a7b4..09d9a1ff 100644
  	}
  
 diff --git a/source/elektron/md/mdLib/mddsp.h b/source/elektron/md/mdLib/mddsp.h
-index c46ec22b..a3b01058 100644
+index c46ec22b..41a25d5b 100644
 --- a/source/elektron/md/mdLib/mddsp.h
 +++ b/source/elektron/md/mdLib/mddsp.h
-@@ -11,6 +11,9 @@
+@@ -2,6 +2,7 @@
+ 
+ #include <atomic>
+ #include <cstdint>
++#include <deque>
+ #include <functional>
+ #include <vector>
+ 
+@@ -11,6 +12,9 @@
  #include "dsp56kEmu/memory.h"
  #include "dsp56kEmu/peripherals.h"
  #include "dsp56kEmu/dspBootCode.h"
@@ -401,7 +458,7 @@ index c46ec22b..a3b01058 100644
  
  namespace mc68k
  {
-@@ -56,6 +59,11 @@ namespace md
+@@ -56,6 +60,11 @@ namespace md
  		dsp56k::Peripherals56303& getPeriph() { return m_periphX; }
  
  		bool     booted() const { return m_schedRunnable.load(std::memory_order_acquire); }
@@ -413,7 +470,22 @@ index c46ec22b..a3b01058 100644
  		void onDspBootFinished();
  
  		// Continuously drain this DSP's HOTX into the UC-facing HI08 receive queue, bounded so the
-@@ -91,6 +99,20 @@ namespace md
+@@ -71,7 +80,13 @@ namespace md
+ 		void    onUCRxEmpty(bool _needMoreData);
+ 		void    hdiTransferUCtoDSP(uint32_t _word);
+ 		void    waitForHostCommandIdle();		// wait in emulated time until no host command is in flight
+-		void    writeWordToDsp(uint32_t _word);	// 1-deep UC->DSP transport: wait for HORX empty, then push
++		void    writeWordToDsp(uint32_t _word);
++	public:
++		static bool hostBacklogEnabled();
++		void    pumpHostBacklog();				// release held words as HRX drains
++		std::deque<uint32_t> m_hostBacklog;
++		size_t  m_hostBacklogMax = 0;
++	private:	// 1-deep UC->DSP transport: wait for HORX empty, then push
+ 		void    hdiSendIrqToDSP(uint8_t _irq);
+ 		void    dispatchHostCommandInterrupt(uint8_t _vba);
+ 		uint8_t hdiUcReadIsr(uint8_t _isr);
+@@ -91,6 +106,20 @@ namespace md
  		dsp56k::DspBoot                m_boot;
  
  		// Published once boot state is fully initialized; acquired by the scheduler.
@@ -435,7 +507,7 @@ index c46ec22b..a3b01058 100644
  
  		uint64_t m_mmHostTxCycle = 0;
 diff --git a/source/elektron/md/mdLib/mdhardware.cpp b/source/elektron/md/mdLib/mdhardware.cpp
-index c19c7790..14ecc725 100644
+index c19c7790..71307ede 100644
 --- a/source/elektron/md/mdLib/mdhardware.cpp
 +++ b/source/elektron/md/mdLib/mdhardware.cpp
 @@ -7,6 +7,7 @@
@@ -534,7 +606,7 @@ index c19c7790..14ecc725 100644
  		const auto trimmed = renderHostAudio(m_schedHostAudio, m_audioOutputs, _frames,
  			[this](const uint32_t _chunk)
  			{
-@@ -1242,13 +1289,10 @@ namespace md
+@@ -1242,19 +1289,26 @@ namespace md
  
  			if(m_schedHostAudioActive)
  			{
@@ -552,7 +624,23 @@ index c19c7790..14ecc725 100644
  			}
  		}
  	}
-@@ -1426,7 +1470,14 @@ namespace md
+ 
+ 	bool Hardware::schedStep()
+ 	{
++		// Release held host words on every scheduler iteration, not only when the
++		// UC happens to touch the host port. The mixer waits for HRDF inside its
++		// receive ISR (P:9af); if nothing refills HRX while the UC is busy
++		// elsewhere, it waits there forever.
++		if(Dsp::hostBacklogEnabled())
++		{
++			m_dspMixer.pumpHostBacklog();
++			m_dspProducer.pumpHostBacklog();
++		}
++
+ 		const double ucPerFrame   = schedUcCyclesPerFrame();
+ 		const double quantumFrames= schedQuantumFrames(m_model);
+ 		const uint64_t clampCycles= schedClampCycles(m_model);
+@@ -1426,7 +1480,14 @@ namespace md
  			score.maximumRequestedCycles = std::max(
  				score.maximumRequestedCycles, diagnosticRequested);
  #endif
@@ -568,7 +656,7 @@ index c19c7790..14ecc725 100644
  				d.dsp().execUntilCycles(stopCyc);
  			else
  			{
-@@ -1450,8 +1501,6 @@ namespace md
+@@ -1450,8 +1511,6 @@ namespace md
  				schedDrainCodecOutput();			// keep the mixer ESSI1 output ring shallow
  		}
  
@@ -577,7 +665,7 @@ index c19c7790..14ecc725 100644
  		return true;
  	}
  
-@@ -1468,6 +1517,17 @@ namespace md
+@@ -1468,6 +1527,17 @@ namespace md
  			m_schedDspOriginUcCycles[index], _dspCycle - m_schedDspOriginCycles[index]);
  	}
  
@@ -595,7 +683,22 @@ index c19c7790..14ecc725 100644
  	void Hardware::schedCatchUpDsp(const uint32_t _dspIndex)
  	{
  		// Run the target DSP inline up to the UC's current machine time
-@@ -1509,6 +1569,8 @@ namespace md
+@@ -1476,6 +1546,14 @@ namespace md
+ 		// of spinning while the DSP is frozen for the UC's whole background quantum. Bounded by the
+ 		// catch-up clamp; monotone (never runs the DSP backwards or past the UC).
+ 		const uint32_t i = _dspIndex & 1;
++		// Release any words held back because HRX was full (MD_HOST_BACKLOG).
++		// This runs on the normal scheduler path, so held words are delivered as
++		// the DSP drains rather than by running the DSP past the machine clock.
++		if(Dsp::hostBacklogEnabled())
++		{
++			m_dspMixer.pumpHostBacklog();
++			m_dspProducer.pumpHostBacklog();
++		}
+ #if MD_TRANSPORT_DIAGNOSTICS
+ 		auto& score = m_transportScorecard.coldFireToDsp[i];
+ 		++score.calls;
+@@ -1509,6 +1587,8 @@ namespace md
  		// MM flow control: a host-TX-backlogged DSP does not advance in catch-up either - the
  		// catch-up loops are how a DSP outruns the UC by thousands of words in the first place
  		// (see the schedStep backpressure comment). MD path untouched.
@@ -604,7 +707,7 @@ index c19c7790..14ecc725 100644
  		const bool s_mmBp = isMonomachine();
  		while(d.dsp().getCycles() < targetCyc && d.dsp().getCycles() < clampStop
  			&& (!s_mmBp
-@@ -1554,6 +1616,12 @@ namespace md
+@@ -1554,6 +1634,12 @@ namespace md
  			return;
  		}
  		auto& d = (c == 0) ? m_dspMixer : m_dspProducer;
@@ -617,7 +720,7 @@ index c19c7790..14ecc725 100644
  		const double producerPos = schedDspFramePos(p);
  		const double deltaFrames = producerPos - m_schedDspOriginFrame[c];
  		if(deltaFrames <= 0.0)
-@@ -1579,10 +1647,21 @@ namespace md
+@@ -1579,10 +1665,21 @@ namespace md
  			score.maximumRequestedCycles = std::max(score.maximumRequestedCycles, requested););
  		m_schedInLinkDelivery = true;
  		const bool bpGate = isMonomachine();
@@ -643,7 +746,7 @@ index c19c7790..14ecc725 100644
  		m_schedInLinkDelivery = false;
  		MD_TRANSPORT_RECORD(const auto executed = d.dsp().getCycles() - startCyc;
  			score.executedCycles += executed;
-@@ -1598,6 +1677,11 @@ namespace md
+@@ -1598,6 +1695,11 @@ namespace md
  				++score.unexpectedShort;);
  	}
  
@@ -761,7 +864,7 @@ index ddf2aae3..99edbe2c 100644
 +		XCODE_ATTRIBUTE_INFOPLIST_KEY_UIApplicationSceneManifest_Generation NO)
 +endif()
 diff --git a/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp b/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
-index 5204dedf..ec807c98 100644
+index 5204dedf..e10daf5a 100644
 --- a/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
 +++ b/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
 @@ -4,6 +4,9 @@
@@ -774,7 +877,7 @@ index 5204dedf..ec807c98 100644
  
  #include <algorithm>
  #include <cstdlib>
-@@ -25,12 +28,236 @@ namespace
+@@ -25,12 +28,238 @@ namespace
  		constexpr uint32_t blockSize = 128;
  		const uint32_t frameCount = md::g_samplerate * _seconds;
  		for(uint32_t frame = 0; frame < frameCount; frame += blockSize)
@@ -852,7 +955,9 @@ index 5204dedf..ec807c98 100644
 +					<< " prodLost=" << _hardware.getDspProducer().m_drainOverwrites
 +					<< " mixDmaArmed=" << _hardware.getDspMixer().m_hostDmaArmed
 +					<< " mixDmaDisarmed=" << _hardware.getDspMixer().m_hostDmaDisarmed
-+					<< " mixDepth1=" << _hardware.getDspMixer().m_drainDepth1 << '\n';
++					<< " mixDepth1=" << _hardware.getDspMixer().m_drainDepth1
++					<< " mixBacklogMax=" << _hardware.getDspMixer().m_hostBacklogMax
++					<< " prodBacklogMax=" << _hardware.getDspProducer().m_hostBacklogMax << '\n';
 +				std::cerr << "MD_PORTC tick=" << tick
 +					<< " deferred=" << _hardware.m_portCEdgeDeferred
 +					<< " released=" << _hardware.m_portCEdgeReleased
@@ -1011,7 +1116,7 @@ index 5204dedf..ec807c98 100644
  		if(!_hardware.getUC().isPanelHandshakeComplete())
  			throw std::runtime_error(std::string(_phase) + ": panel handshake did not complete");
  		if(!_hardware.isFirmwareMidiReady())
-@@ -66,7 +293,8 @@ int main()
+@@ -66,7 +295,8 @@ int main()
  		require(fresh.isValid(), "fresh machine was invalid");
  		require(fresh.isFactoryFlashInitializationExpected(),
  			"fresh machine did not enter factory initialization");
