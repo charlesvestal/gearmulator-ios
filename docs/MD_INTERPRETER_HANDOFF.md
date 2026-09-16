@@ -934,3 +934,83 @@ entirely** in the catch-up-pumped variant: mixer alive on its own program,
 producer in its mainline, for the whole run. That is the first configuration in
 this investigation where neither DSP dies. It stalls instead of faulting, which
 is a strictly better failure and the right base for the UC-stall work.
+
+## Session 3, part 10 — the UC stall works; the transport is healthy; a fifth cause remains
+
+### The UC stall, implemented
+
+Two halves, both under `MD_HOST_BACKLOG=1`:
+
+1. **Hold only true overflow** (mddsp.cpp). Words go straight through at depth
+   0 and 1, because latch+HRX = 2 is legal; only depth >= 2 is held. Holding at
+   depth 1 throttles the bootstrap loader, which polls HRX from the core and
+   consumes as fast as words arrive (measured: producer never leaves 14ff00,
+   backlog 28,544).
+2. **Stall the UC** (mdhardware.cpp, schedStep). While a DSP still holds
+   undelivered words, advance THAT DSP in preference to the UC, so UC time stops
+   exactly as it would while waiting on HREQ. If the DSP has already reached the
+   shared clock it cannot advance and the UC must run, since the UC is what moves
+   the clock on; refusing there deadlocks.
+
+This is the missing half identified in part 9: metering the words is not enough,
+the UC has to be charged for the wait.
+
+### It fixes the transport, measurably
+
+```
+                        before (default)      with the stall
+worst single drain        100,048 cycles        2,063 cycles
+words lost                   538                    0
+mixer cycles/tick     27.8M, 0, 29.2M, 0, 0   10.03M / 10.32M steady
+backlog high-water              -                  241
+bootstrap loader           completes            completes
+```
+
+The mixer's cycle delivery is now **indistinguishable from the JIT's** — steady
+10.03M/10.32M alternating, with one small wobble (10.57M/9.77M) at the moment of
+failure instead of the old 3x overrun followed by total starvation.
+
+### And the fault is unchanged
+
+```
+... 9c2 9a8 44 9a8 49 9c2 9a8 44 9a8 49 9c2 9a8 44 9c2 9c2 9c2
+```
+
+The mixer runs a healthy pattern (DMA0, mainline completion, dispatch, repeat)
+and then abruptly takes three DMA0 interrupts back to back with no completion
+between them. Panel 3160, mixerPC 9da, first at tick 27.
+
+So lumping, data loss, loader throttling and drain overshoot are ALL now
+eliminated, and the firmware still faults. There is a fifth cause, and it is not
+the host transport.
+
+### The concrete lead for it
+
+`DmaChannel::exec()` (dma.cpp) paces itself on the INSTRUCTION counter:
+
+```cpp
+const auto clock = m_peripherals.getDSP().getInstructionCounter();
+const auto diff  = clock - m_lastClock;
+m_pendingTransfer -= static_cast<int32_t>(diff);
+```
+
+and `IPeripherals::isDue()` likewise tests `_instructions >= m_targetClock`,
+with delays that are expressed in CYCLES. Instructions and cycles are not
+interchangeable (measured ~4.99 cycles/instruction here), and the two engines do
+not advance the instruction counter identically — the JIT's `fastForward()` adds
+to BOTH counters at once, and the JIT bills a block where the interpreter bills
+each instruction. A DMA transfer delay measured in instructions is therefore
+engine-dependent, which is exactly the shape of a fault that survives a
+perfectly paced transport.
+
+Next: instrument DMA0's retrigger interval in both engines, in cycles AND
+instructions, across the ticks around the failure. If DMA0's own pacing differs
+while the DSP's cycle budget matches, that is the fifth cause.
+
+### State
+
+```
+interpreter, all gates OFF:   3380 bytes  (unchanged default)
+JIT:                         26894/22090  PASSES
+dsp56kTestRunner:             exit 0
+```

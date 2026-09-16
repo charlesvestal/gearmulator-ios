@@ -1,4 +1,4 @@
-### Snapshot of md-interp-work/mdmm, Wed Sep 16 19:50:09 CEST 2026
+### Snapshot of md-interp-work/mdmm, Wed Sep 16 19:56:29 CEST 2026
 
 diff --git a/base.cmake b/base.cmake
 index 0a880954..23428f2d 100644
@@ -86,7 +86,7 @@ index e5dffe6d..d450de65 100644
  		mdJucePlugin_VST3 mmJucePlugin_VST3
  		mdJucePlugin_AU mmJucePlugin_AU
 diff --git a/source/elektron/md/mdLib/mddsp.cpp b/source/elektron/md/mdLib/mddsp.cpp
-index 3cc8a7b4..83efe1a7 100644
+index 3cc8a7b4..aa5dc193 100644
 --- a/source/elektron/md/mdLib/mddsp.cpp
 +++ b/source/elektron/md/mdLib/mddsp.cpp
 @@ -1,4 +1,11 @@
@@ -183,7 +183,7 @@ index 3cc8a7b4..83efe1a7 100644
  		if(_needMoreData)
  		{
  			// A blocking host read needs its peer to make progress on this single
-@@ -302,27 +358,252 @@ namespace md
+@@ -302,27 +358,263 @@ namespace md
  		writeWordToDsp(_word);
  	}
  
@@ -221,10 +221,21 @@ index 3cc8a7b4..83efe1a7 100644
 +
  	void Dsp::writeWordToDsp(const uint32_t _word)
  	{
-+		if(hostBacklogEnabled())
++		// Only model HREQ for the post-boot transfers. The bootstrap loader is a
++		// different mode entirely: no DMA, the core polls HRX and consumes words
++		// as fast as they arrive, and the inline drain already paces it correctly
++		// (upload completes on the JIT's own tick). Holding words back there just
++		// starves it -- measured: the producer never leaves 14ff00 and the backlog
++		// reaches 28,544.
++		if(hostBacklogEnabled() && booted())
 +		{
 +			pumpHostBacklog();
-+			if(!m_hostBacklog.empty() || !hdi08().rxData().empty())
++			// Hold back only TRUE overflow. The real path is a host latch in front
++			// of a one-word HRX, so two words in flight is legal and must go
++			// straight through -- holding at depth 1 throttles the bootstrap
++			// loader, which consumes as fast as words arrive (measured: producer
++			// never leaves 14ff00, backlog 28,544).
++			if(!m_hostBacklog.empty() || hdi08().rxData().size() >= 2)
 +			{
 +				m_hostBacklog.push_back(_word);
 +				if(m_hostBacklog.size() > m_hostBacklogMax)
@@ -440,7 +451,7 @@ index 3cc8a7b4..83efe1a7 100644
  		// A CVR write may not overtake a host command already in flight. Hold the current
  		// transaction in emulated time until RTI clears host-command-busy.
  		if(!hdi08().hostCommandBusy())
-@@ -354,8 +635,10 @@ namespace md
+@@ -354,8 +646,10 @@ namespace md
  	void Dsp::hdiSendIrqToDSP(const uint8_t _irq)
  	{
  		// Catch the DSP up to the UC's current machine time before the CVR is
@@ -453,7 +464,7 @@ index 3cc8a7b4..83efe1a7 100644
  			m_hardware.schedCatchUpDsp(m_index);
  		// Preserve Monomachine host-command ordering. Data words precede the next
  		// command, so drain the receive path before dispatching that command. Run the DSP
-@@ -388,6 +671,21 @@ namespace md
+@@ -388,6 +682,21 @@ namespace md
  
  		dispatchHostCommandInterrupt(_irq);
  
@@ -475,7 +486,7 @@ index 3cc8a7b4..83efe1a7 100644
  		hdiTransferDSPtoUC();
  	}
  
-@@ -403,6 +701,7 @@ namespace md
+@@ -403,6 +712,7 @@ namespace md
  		_isr = static_cast<uint8_t>((_isr & ~mc68k::Hdi08::Rxdf)
  			| (m_hdiUC.canReceiveData() ? 0 : mc68k::Hdi08::Rxdf));
  
@@ -558,7 +569,7 @@ index c46ec22b..81f06e34 100644
  
  		uint64_t m_mmHostTxCycle = 0;
 diff --git a/source/elektron/md/mdLib/mdhardware.cpp b/source/elektron/md/mdLib/mdhardware.cpp
-index c19c7790..c6e78c51 100644
+index c19c7790..d1e3dc08 100644
 --- a/source/elektron/md/mdLib/mdhardware.cpp
 +++ b/source/elektron/md/mdLib/mdhardware.cpp
 @@ -7,6 +7,7 @@
@@ -689,7 +700,35 @@ index c19c7790..c6e78c51 100644
  		const double ucPerFrame   = schedUcCyclesPerFrame();
  		const double quantumFrames= schedQuantumFrames(m_model);
  		const uint64_t clampCycles= schedClampCycles(m_model);
-@@ -1426,7 +1478,14 @@ namespace md
+@@ -1312,6 +1364,27 @@ namespace md
+ 		if(dsp1Pos < minPos) { minPos = dsp1Pos; who = 1; }
+ 		if(dsp2Pos < minPos) { minPos = dsp2Pos; who = 2; }
+ 
++		// HREQ stall (MD_HOST_BACKLOG). The ColdFire's block transfer is paced on
++		// hardware by the DSP requesting each word, so the UC's own clock stops
++		// while it waits. Metering the words alone reproduced the overrun because
++		// the UC was never charged for that wait; this is the missing half. While
++		// a DSP still holds undelivered words, advance THAT DSP in preference to
++		// the UC, so UC time stands still exactly as it would on the machine.
++		// If the DSP has already reached the shared clock it cannot advance, and
++		// the UC is what moves the clock on, so it must be allowed to run --
++		// refusing there would deadlock.
++		if(who == 0 && Dsp::hostBacklogEnabled())
++		{
++			if(!m_dspMixer.m_hostBacklog.empty() && dsp1Pos < target && m_dspMixer.booted())
++			{
++				minPos = dsp1Pos; who = 1;
++			}
++			else if(!m_dspProducer.m_hostBacklog.empty() && dsp2Pos < target && m_dspProducer.booted())
++			{
++				minPos = dsp2Pos; who = 2;
++			}
++		}
++
+ 		if(minPos >= target)
+ 			return false;							// everything has reached the shared clock
+ 
+@@ -1426,7 +1499,14 @@ namespace md
  			score.maximumRequestedCycles = std::max(
  				score.maximumRequestedCycles, diagnosticRequested);
  #endif
@@ -705,7 +744,7 @@ index c19c7790..c6e78c51 100644
  				d.dsp().execUntilCycles(stopCyc);
  			else
  			{
-@@ -1450,8 +1509,6 @@ namespace md
+@@ -1450,8 +1530,6 @@ namespace md
  				schedDrainCodecOutput();			// keep the mixer ESSI1 output ring shallow
  		}
  
@@ -714,7 +753,7 @@ index c19c7790..c6e78c51 100644
  		return true;
  	}
  
-@@ -1468,6 +1525,17 @@ namespace md
+@@ -1468,6 +1546,17 @@ namespace md
  			m_schedDspOriginUcCycles[index], _dspCycle - m_schedDspOriginCycles[index]);
  	}
  
@@ -732,7 +771,7 @@ index c19c7790..c6e78c51 100644
  	void Hardware::schedCatchUpDsp(const uint32_t _dspIndex)
  	{
  		// Run the target DSP inline up to the UC's current machine time
-@@ -1476,6 +1544,14 @@ namespace md
+@@ -1476,6 +1565,14 @@ namespace md
  		// of spinning while the DSP is frozen for the UC's whole background quantum. Bounded by the
  		// catch-up clamp; monotone (never runs the DSP backwards or past the UC).
  		const uint32_t i = _dspIndex & 1;
@@ -747,7 +786,7 @@ index c19c7790..c6e78c51 100644
  #if MD_TRANSPORT_DIAGNOSTICS
  		auto& score = m_transportScorecard.coldFireToDsp[i];
  		++score.calls;
-@@ -1509,6 +1585,8 @@ namespace md
+@@ -1509,6 +1606,8 @@ namespace md
  		// MM flow control: a host-TX-backlogged DSP does not advance in catch-up either - the
  		// catch-up loops are how a DSP outruns the UC by thousands of words in the first place
  		// (see the schedStep backpressure comment). MD path untouched.
@@ -756,7 +795,7 @@ index c19c7790..c6e78c51 100644
  		const bool s_mmBp = isMonomachine();
  		while(d.dsp().getCycles() < targetCyc && d.dsp().getCycles() < clampStop
  			&& (!s_mmBp
-@@ -1554,6 +1632,12 @@ namespace md
+@@ -1554,6 +1653,12 @@ namespace md
  			return;
  		}
  		auto& d = (c == 0) ? m_dspMixer : m_dspProducer;
@@ -769,7 +808,7 @@ index c19c7790..c6e78c51 100644
  		const double producerPos = schedDspFramePos(p);
  		const double deltaFrames = producerPos - m_schedDspOriginFrame[c];
  		if(deltaFrames <= 0.0)
-@@ -1579,10 +1663,21 @@ namespace md
+@@ -1579,10 +1684,21 @@ namespace md
  			score.maximumRequestedCycles = std::max(score.maximumRequestedCycles, requested););
  		m_schedInLinkDelivery = true;
  		const bool bpGate = isMonomachine();
@@ -795,7 +834,7 @@ index c19c7790..c6e78c51 100644
  		m_schedInLinkDelivery = false;
  		MD_TRANSPORT_RECORD(const auto executed = d.dsp().getCycles() - startCyc;
  			score.executedCycles += executed;
-@@ -1598,6 +1693,11 @@ namespace md
+@@ -1598,6 +1714,11 @@ namespace md
  				++score.unexpectedShort;);
  	}
  
