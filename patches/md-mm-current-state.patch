@@ -1,4 +1,4 @@
-### Snapshot of md-interp-work/mdmm, Wed Sep 16 19:25:05 CEST 2026
+### Snapshot of md-interp-work/mdmm, Wed Sep 16 19:27:01 CEST 2026
 
 diff --git a/base.cmake b/base.cmake
 index 0a880954..23428f2d 100644
@@ -86,7 +86,7 @@ index e5dffe6d..d450de65 100644
  		mdJucePlugin_VST3 mmJucePlugin_VST3
  		mdJucePlugin_AU mmJucePlugin_AU
 diff --git a/source/elektron/md/mdLib/mddsp.cpp b/source/elektron/md/mdLib/mddsp.cpp
-index 3cc8a7b4..5ee2d005 100644
+index 3cc8a7b4..09d9a1ff 100644
 --- a/source/elektron/md/mdLib/mddsp.cpp
 +++ b/source/elektron/md/mdLib/mddsp.cpp
 @@ -1,4 +1,11 @@
@@ -156,7 +156,7 @@ index 3cc8a7b4..5ee2d005 100644
  		if(_needMoreData)
  		{
  			// A blocking host read needs its peer to make progress on this single
-@@ -309,20 +345,184 @@ namespace md
+@@ -309,20 +345,191 @@ namespace md
  		// scheduler clamp. This preserves receive ordering without a wall-clock
  		// wait or an unbounded host-side FIFO.
  		const uint64_t startCycle = m_dsp.getCycles();
@@ -309,8 +309,15 @@ index 3cc8a7b4..5ee2d005 100644
  #endif
 +		// DIAGNOSTIC: posting while the previous word is still unconsumed overwrites
 +		// a 1-deep HRX, i.e. the UC->DSP stream silently loses a word.
-+		if(hdi08().hasRXData())
-+			++m_drainOverwrites;
++		// Depth 1 is LEGAL: the real HI08 has a host latch in front of a one-word
++		// HRX, so latch+HRX = 2 words in flight. Only depth >= 2 is a true overflow.
++		{
++			const auto depth = hdi08().rxData().size();
++			if(depth >= 2)
++				++m_drainOverwrites;
++			if(depth == 1)
++				++m_drainDepth1;
++		}
  		hdi08().writeRX(&_word, 1);
 +		if(((++m_hostWordCount) % 1000) == 0)
 +			std::fprintf(stderr, "MD_HOSTWORDS dsp%u=%llu pc=%06x drainCyclesPerWord=%.1f drainExecsPerWord=%.1f unfinished=%llu\n",
@@ -345,7 +352,7 @@ index 3cc8a7b4..5ee2d005 100644
  		// A CVR write may not overtake a host command already in flight. Hold the current
  		// transaction in emulated time until RTI clears host-command-busy.
  		if(!hdi08().hostCommandBusy())
-@@ -354,8 +554,10 @@ namespace md
+@@ -354,8 +561,10 @@ namespace md
  	void Dsp::hdiSendIrqToDSP(const uint8_t _irq)
  	{
  		// Catch the DSP up to the UC's current machine time before the CVR is
@@ -358,7 +365,7 @@ index 3cc8a7b4..5ee2d005 100644
  			m_hardware.schedCatchUpDsp(m_index);
  		// Preserve Monomachine host-command ordering. Data words precede the next
  		// command, so drain the receive path before dispatching that command. Run the DSP
-@@ -388,6 +590,21 @@ namespace md
+@@ -388,6 +597,21 @@ namespace md
  
  		dispatchHostCommandInterrupt(_irq);
  
@@ -381,7 +388,7 @@ index 3cc8a7b4..5ee2d005 100644
  	}
  
 diff --git a/source/elektron/md/mdLib/mddsp.h b/source/elektron/md/mdLib/mddsp.h
-index c46ec22b..f11e5a5a 100644
+index c46ec22b..a3b01058 100644
 --- a/source/elektron/md/mdLib/mddsp.h
 +++ b/source/elektron/md/mdLib/mddsp.h
 @@ -11,6 +11,9 @@
@@ -406,7 +413,7 @@ index c46ec22b..f11e5a5a 100644
  		void onDspBootFinished();
  
  		// Continuously drain this DSP's HOTX into the UC-facing HI08 receive queue, bounded so the
-@@ -91,6 +99,19 @@ namespace md
+@@ -91,6 +99,20 @@ namespace md
  		dsp56k::DspBoot                m_boot;
  
  		// Published once boot state is fully initialized; acquired by the scheduler.
@@ -420,6 +427,7 @@ index c46ec22b..f11e5a5a 100644
 +		uint64_t m_drainOverwrites = 0;	// DIAGNOSTIC: words lost to a full HRX
 +		uint64_t m_hostDmaArmed = 0;
 +		uint64_t m_hostDmaDisarmed = 0;
++		uint64_t m_drainDepth1 = 0;
 +	private:
 +		uint64_t m_drainExecs = 0;
 +		uint64_t m_drainUnfinished = 0;
@@ -753,7 +761,7 @@ index ddf2aae3..99edbe2c 100644
 +		XCODE_ATTRIBUTE_INFOPLIST_KEY_UIApplicationSceneManifest_Generation NO)
 +endif()
 diff --git a/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp b/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
-index 5204dedf..34704879 100644
+index 5204dedf..ec807c98 100644
 --- a/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
 +++ b/source/elektron/md/mdLibTest/panelReadinessFirmwareTest.cpp
 @@ -4,6 +4,9 @@
@@ -766,7 +774,7 @@ index 5204dedf..34704879 100644
  
  #include <algorithm>
  #include <cstdlib>
-@@ -25,12 +28,235 @@ namespace
+@@ -25,12 +28,236 @@ namespace
  		constexpr uint32_t blockSize = 128;
  		const uint32_t frameCount = md::g_samplerate * _seconds;
  		for(uint32_t frame = 0; frame < frameCount; frame += blockSize)
@@ -843,7 +851,8 @@ index 5204dedf..34704879 100644
 +					<< " mixLost=" << _hardware.getDspMixer().m_drainOverwrites
 +					<< " prodLost=" << _hardware.getDspProducer().m_drainOverwrites
 +					<< " mixDmaArmed=" << _hardware.getDspMixer().m_hostDmaArmed
-+					<< " mixDmaDisarmed=" << _hardware.getDspMixer().m_hostDmaDisarmed << '\n';
++					<< " mixDmaDisarmed=" << _hardware.getDspMixer().m_hostDmaDisarmed
++					<< " mixDepth1=" << _hardware.getDspMixer().m_drainDepth1 << '\n';
 +				std::cerr << "MD_PORTC tick=" << tick
 +					<< " deferred=" << _hardware.m_portCEdgeDeferred
 +					<< " released=" << _hardware.m_portCEdgeReleased
@@ -1002,7 +1011,7 @@ index 5204dedf..34704879 100644
  		if(!_hardware.getUC().isPanelHandshakeComplete())
  			throw std::runtime_error(std::string(_phase) + ": panel handshake did not complete");
  		if(!_hardware.isFirmwareMidiReady())
-@@ -66,7 +292,8 @@ int main()
+@@ -66,7 +293,8 @@ int main()
  		require(fresh.isValid(), "fresh machine was invalid");
  		require(fresh.isFactoryFlashInitializationExpected(),
  			"fresh machine did not enter factory initialization");
