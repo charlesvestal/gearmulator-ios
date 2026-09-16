@@ -731,3 +731,72 @@ time when it is not (the single-threaded `ucYieldLoop` equivalent). That
 addresses the lumps, the data loss and the deadlocks together, rather than
 trading them against each other. Until then no clamp setting can work: the
 measurements in parts 3-5 show the trade is forced.
+
+## Session 3, part 7 — the flow-control flags are modelled, HREQ is not
+
+### Correction: "data loss" was over-counted, but it is still real
+
+Parts 4-5 counted a post as lost whenever HRX was non-empty. That is wrong: the
+real HI08 has a host latch in FRONT of the one-word HRX, so two words in flight
+is legal, and mdLib models exactly that (mddsp.cpp, hdiUcReadIsr):
+
+```
+horxDepth == 0  ->  TXDE | TRDY      (both clear to send)
+horxDepth == 1  ->  TXDE only        (latch has room, DSP latch full)
+horxDepth >= 2  ->  neither          (must wait)
+```
+
+Re-counted with depth >= 2 as the only true overflow:
+
+```
+              overflow(depth>=2)   legal depth-1 posts
+JIT                          0                      0
+interpreter                538                      1
+```
+
+So the loss survives the correction. The interpreter posts 538 words while BOTH
+TXDE and TRDY are clear — the state in which correct firmware must wait.
+
+### Why the UC does not wait: HREQ is unmodelled
+
+mdLib derives TXDE/TRDY honestly from the receive depth, so the flags are right.
+The gap is named in its own comment:
+
+```
+// HREQ is routed separately; composing it here would require the unmodelled IVR path.
+```
+
+The ColdFire's flow control for this transfer runs over HREQ (the host request
+line), which is not modelled. Under the JIT the DSP drains fast enough that HRX
+never reaches depth 2, so the missing back-pressure is never exercised. Under
+the interpreter the DSP does not drain in time, depth passes 2, and with no
+HREQ the UC keeps writing and words are destroyed.
+
+This ties the whole chain together:
+
+1. HRX is an 8192-word FIFO where the part has a 1-word HRX behind a latch.
+2. The inline drain exists to fake the narrow register, and either lumps
+   (100k cycles/word, ESSI desync) or deadlocks (`waitNotFull` blocks).
+3. HREQ back-pressure is missing, so nothing stops the UC when the drain fails.
+4. The mixer's host-receive ISR chain (disarm, wait HRDF, re-arm DMA5) starves:
+   28 entries against the JIT's 15,204.
+5. The mixer's mainline stops resetting x:$647, three DMA0 interrupts land
+   without a completion, and the firmware jumps to its error loop at 9da.
+
+The JIT survives all of this only because it is fast enough to never reach the
+failing states. It is not more correct; it is luckier.
+
+### Honest status
+
+MD does NOT boot under the interpreter. Bug 1 is fixed in code but gated
+(`MD_DRAIN_MINSTEP`) because the clamp deadlocks with it. Bug 2 is understood
+end to end but needs real work, not a tuning knob:
+
+- give MD true 1-deep receive semantics instead of faking them over a FIFO, and
+- model HREQ back-pressure so the UC stalls in machine time when HRX is full,
+  which is also the single-threaded `ucYieldLoop` equivalent mdLib lacks.
+
+Both are changes to shared transport code and must be validated against Osirus
+and the XT, which run on the same HDI08 and currently depend on its
+always-ready behaviour. Baselines: interpreter true default 3380 bytes, JIT
+26894, dsp56kTestRunner exit 0, and overflow counts at zero.
