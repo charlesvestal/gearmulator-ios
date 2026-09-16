@@ -426,3 +426,97 @@ since the edge release is gated on DMA4 being enabled.
 
 `MD_MAX_DO_ITERATIONS` large values DEADLOCK (0 and 64 both hang), same as
 unbounded. Do not raise it.
+
+## Session 3, part 3 — ROOT CAUSE of bug 2, and a warning about these instructions
+
+### WARNING: `MD_HDI08_SLACK=1000000000` disables the fix, not an experiment
+
+The previous handoff instructs "Always set MD_HDI08_SLACK=1000000000 next" for
+every comparison. That value DISABLES the clamp in `Dsp::writeWordToDsp` that
+exists specifically to bound the inline drain. Every measurement taken under
+that flag has the mitigation switched off. Baselines for reference:
+
+```
+interpreter, MD_HDI08_SLACK=1e9 (handoff's setting):  3160 bytes
+interpreter, NO env overrides at all (true default):  3380 bytes
+JIT:                                                 26894 bytes (passes)
+```
+
+Quote the flag you used with every number. Do not treat 3160 as "the"
+interpreter baseline; the true default is 3380.
+
+### Root cause of bug 2: the inline HDI08 drain, measured
+
+Instrumented the drain (`MD_DRAIN mixTotal/mixMax`, `MD_STUCKDRAIN`).
+
+Per-tick mixer cycle advance, interpreter vs JIT:
+
+```
+JIT  ticks 19-31:  10.03M / 10.32M alternating, perfectly steady
+INT  ticks 19-23:  identical to the JIT
+INT  tick 24:      27,833,223      tick 25: 0
+INT  tick 26:      29,219,885      ticks 27,28: 0, 0
+INT  tick 29:       3,993,678      tick 30+: back to steady
+```
+
+Ticks 24-29 total 61.04M = 10.17M/tick, EXACTLY the steady average. The
+scheduler delivers the right total in LUMPS, starving the mixer for whole ticks,
+so queued DMA0 requests fire back to back on resume — the three consecutive
+`9c2` with no `9a8` that is the fault condition.
+
+The lump is the drain. At tick 24, 26.0M of the mixer's 27.83M cycles are inline
+drain, with single calls hitting `mixMax=100,007` — the hard 100k inline limit —
+about 260 times in one tick. The JIT at the same tick: `mixMax=120`, total
+growing smoothly at ~200k/tick.
+
+`MD_STUCKDRAIN` says why the drain never completes:
+
+```
+MD_STUCKDRAIN dsp0 cycles=100000 pc=000253 sr=0000d4 rxData=1 rxIrqEn=0 pendingIrq=0
+MD_STUCKDRAIN dsp0 cycles=100000 pc=00003f  sr=0000d8 rxData=1 rxIrqEn=0 pendingIrq=0
+... (pc scattered: 253, 3f, 251, 3ee, 22e, 68e, 97d, 20d, 211)
+```
+
+**`rxIrqEn=0` and `pendingIrq=0` in every case.** The HDI08 holds data but the
+mixer's receive interrupt is DISABLED, so no interrupt will ever deliver it. The
+mixer reads it only when its own code polls, and the scattered PCs show it is
+running normal work nowhere near that poll. Spinning 100,000 cycles waiting for
+`hasRXData()` to clear is therefore futile by construction.
+
+This is confirmation, by independent measurement, of the analysis already
+written in the comment above the clamp in mddsp.cpp ("550 clamp hits on the
+mixer, ~55M cycles ... drift that desynchronises the ESSI link").
+
+### Why neither clamp setting works
+
+```
+slice 4 + slack 1e9      -> 3160, lumps of 100k/word
+slice 4 + slack 100000   -> 3160
+slice 4 + slack 10000    -> HANGS
+slice 4 + slack 2048     -> HANGS
+slice 32 + slack 2048    -> 3380 (true default)
+```
+
+Unclamped it lumps and desynchronises the ESSI link; clamped tightly it
+deadlocks, because once the MCU declines to advance the DSP, NOTHING else
+advances it either — `schedCatchUpDsp` sees the DSP already at its machine-clock
+deadline and declines too, so the pending word never drains.
+
+### The actual design defect, and the fix direction
+
+mdLib is the only synth in this tree without a DSP thread. xtLib's
+`DSP::hdiTransferUCtoDSP` does NOT advance the DSP inline at all — it posts the
+word and lets the DSP's own thread consume it, with the MCU waiting via
+`ucYieldLoop`. mdLib has no such yield path (grep: only `std::this_thread::yield`
+on the threaded paths), so it substitutes "run this one DSP far into the future
+from the MCU's thread", which is what produces the lumps.
+
+Threading is excluded here (already disproved). The fix is a single-threaded
+equivalent of `ucYieldLoop`: when the MCU needs HDI08 room, advance the WHOLE
+machine in small bounded steps through the normal scheduler — all components in
+lockstep — instead of running one DSP in isolation past the shared clock. That
+removes the lump (fine-grained interleave) and the deadlock (something always
+advances the DSP) at the same time.
+
+Test the fix against the true default baseline (3380) and the JIT (26894), and
+re-run the dsp56kTestRunner unit suite, which must stay at exit 0.
