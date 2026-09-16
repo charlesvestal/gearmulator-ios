@@ -1894,3 +1894,44 @@ dsp56kTestRunner:  exit 0
 MD interpreter:    3380 bytes, mixerPC 9da
 MD JIT:            26894 / 22090  PASSES
 ```
+
+## Session 3, part 25 — peripheral service cadence tested and excluded
+
+Reframing note: the interpreter has NEVER worked for MD/MM. This is not a
+regression to find, it is behaviour to implement. mdLib's transport was written
+and hand-tuned against JIT semantics.
+
+That made peripheral service cadence the best remaining structural candidate.
+`IPeripherals::isDue()` is tested against the INSTRUCTION counter
+(`_instructions >= m_targetClock`) while `execPeripherals()` schedules the next
+service as `instructions + <a cycle-valued delay>`. The two engines advance that
+counter differently: the interpreter creeps by one and services a peripheral on
+the exact instruction it comes due; the JIT jumps by a whole block and services
+it up to a block LATE.
+
+Added `MD_PERIPH_BATCH=N` (dsp.h `execPeriph`, global in dsp.cpp, default 1) to
+reproduce the JIT's lateness in the interpreter:
+
+```
+batch=1 (unchanged)   3380 bytes   mixVec12=474
+batch=8               3160 bytes   mixVec12=465
+batch=20              HANGS
+JIT                   4204 bytes   mixVec12=15,204
+```
+
+No improvement, then deadlock. **Peripheral service cadence is excluded.**
+
+### Upstream research (this session)
+
+- The working tree is at upstream HEAD: parent = PR #83 merge (2026-09-15),
+  `source/dsp56300` = `cf0755e` (2026-09-14). There is no upstream fix to adopt.
+  PR #83 is a submodule bump plus audio-I/O work, not a boot fix.
+- `joelanders/gearmulator-md-mm` has ZERO issues mentioning the interpreter,
+  non-JIT builds, iOS, or DSP56K_FORCE_INTERPRETER. MD/MM under the interpreter
+  has never been exercised upstream.
+- iOS cannot JIT at all (no executable pages for a non-entitled process), so a
+  JIT build fails at runtime there. The interpreter is not a fallback on iPad,
+  it is the only engine.
+
+Conclusion: nothing to inherit. Making MD/MM run interpreted is new work on this
+fork, and the transport is the part that has to be written for it.

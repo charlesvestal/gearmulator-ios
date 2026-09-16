@@ -1,4 +1,4 @@
-### Snapshot of md-interp-work/mdmm, Wed Sep 16 21:46:27 CEST 2026
+### Snapshot of md-interp-work/mdmm, Wed Sep 16 22:01:23 CEST 2026
 
 diff --git a/base.cmake b/base.cmake
 index 0a880954..23428f2d 100644
@@ -1860,7 +1860,7 @@ index 6cbf7f7..4f16590 100644
  		uint32_t exec() noexcept;
  		void setActiveChannel(TWord _channel);
 diff --git a/source/dsp56kEmu/dsp.cpp b/source/dsp56kEmu/dsp.cpp
-index 612813b..8c38859 100644
+index 612813b..fdd2b01 100644
 --- a/source/dsp56kEmu/dsp.cpp
 +++ b/source/dsp56kEmu/dsp.cpp
 @@ -1,6 +1,9 @@
@@ -1873,7 +1873,7 @@ index 612813b..8c38859 100644
  
  #include <atomic>
  #include <chrono>
-@@ -83,6 +86,134 @@ namespace dsp56k
+@@ -83,6 +86,145 @@ namespace dsp56k
  	// _____________________________________________________________________________
  	// DSP
  	//
@@ -1939,6 +1939,17 @@ index 612813b..8c38859 100644
 +		}();
 +		return s_enabled;
 +	}
++
++	// DIAGNOSTIC: peripheral service batching, see DSP::execPeriph() in dsp.h.
++	uint32_t g_periphBatch = []() -> uint32_t {
++		if(const char* e = std::getenv("MD_PERIPH_BATCH"))
++		{
++			const auto v = std::atoi(e);
++			if(v > 0)
++				return static_cast<uint32_t>(v);
++		}
++		return 1;
++	}();
 +
 +	void DSP::initDivergenceTrace()
 +	{
@@ -2008,7 +2019,7 @@ index 612813b..8c38859 100644
  	DSP::DSP(Memory& _memory, IPeripherals* _pX, IPeripherals* _pY)
  		: mem(_memory)
  		, perif({_pX, _pY})
-@@ -94,6 +225,8 @@ namespace dsp56k
+@@ -94,6 +236,8 @@ namespace dsp56k
  	{
  		assert(_pX != _pY && "cannot use the same peripherals twice");
  
@@ -2017,7 +2028,7 @@ index 612813b..8c38859 100644
  		mem.setDSP(this);
  
  		m_disasm.addSymbols(mem);
-@@ -404,16 +537,37 @@ namespace dsp56k
+@@ -404,16 +548,37 @@ namespace dsp56k
  		m_currentOpLen = 1;
  
  		const TWord currentOp = pcCurrentInstruction;
@@ -2057,7 +2068,7 @@ index 612813b..8c38859 100644
  
  			if(g_traceSupported && pcCurrentInstruction == currentOp)
  				traceOp();
-@@ -580,6 +734,9 @@ namespace dsp56k
+@@ -580,6 +745,9 @@ namespace dsp56k
  		
  		sr_set( SR_LF );
  
@@ -2067,7 +2078,7 @@ index 612813b..8c38859 100644
  		if constexpr(!g_useJIT)
  			m_cycles += getOpcodeCycles(pcCurrentInstruction);
  
-@@ -587,6 +744,19 @@ namespace dsp56k
+@@ -587,6 +755,19 @@ namespace dsp56k
  
  		traceOp();
  
@@ -2087,7 +2098,7 @@ index 612813b..8c38859 100644
  		// __________________
  		//
  
-@@ -638,6 +808,14 @@ namespace dsp56k
+@@ -638,6 +819,14 @@ namespace dsp56k
  
  	bool DSP::rep_exec(const TWord _loopCount)
  	{
@@ -2102,7 +2113,7 @@ index 612813b..8c38859 100644
  		const auto lcBackup = reg.lc;
  		reg.lc.var = _loopCount;
  
-@@ -1340,6 +1518,16 @@ namespace dsp56k
+@@ -1340,6 +1529,16 @@ namespace dsp56k
  
  	bool DSP::injectInterrupt(uint32_t _interruptVectorAddress)
  	{
@@ -2120,7 +2131,7 @@ index 612813b..8c38859 100644
  
  		if(m_interruptFunc == m_execPeripheralsFunc)
 diff --git a/source/dsp56kEmu/dsp.h b/source/dsp56kEmu/dsp.h
-index 7fa8678..2624ad4 100644
+index 7fa8678..6c380ad 100644
 --- a/source/dsp56kEmu/dsp.h
 +++ b/source/dsp56kEmu/dsp.h
 @@ -1,6 +1,7 @@
@@ -2131,7 +2142,15 @@ index 7fa8678..2624ad4 100644
  
  #include "disasm.h"
  #include "dspconfig.h"
-@@ -92,6 +93,29 @@ namespace dsp56k
+@@ -21,6 +22,7 @@
+ 
+ namespace dsp56k
+ {
++	extern uint32_t g_periphBatch;	// DIAGNOSTIC: see execPeriph()
+ 	class Memory;
+ 	class InterpreterUnitTests;
+ 	class JitUnittests;
+@@ -92,6 +94,29 @@ namespace dsp56k
  		std::array<IPeripherals* const, 2>	perif;
  		
  		TWord							pcCurrentInstruction = 0;
@@ -2161,7 +2180,7 @@ index 7fa8678..2624ad4 100644
  		TWord							m_opWordB = 0;
  		uint32_t						m_currentOpLen = 0;
  
-@@ -192,13 +216,100 @@ namespace dsp56k
+@@ -192,13 +217,100 @@ namespace dsp56k
  
  		TReg24	getPC							() const									{ return reg.pc; }
  
@@ -2192,13 +2211,13 @@ index 7fa8678..2624ad4 100644
 +		void execBasicBlockStep() noexcept
 +		{
 +			if(g_useJIT)
-+			{
+ 			{
 +				execJit();
 +				return;
 +			}
 +			constexpr uint32_t maxBlock = 64;	// safety bound, never hit in a real block
 +			for(uint32_t n = 0; n < maxBlock; ++n)
- 			{
++			{
 +				const TWord pc = reg.pc.toWord();
  				execInterpreter();
 +				// Control flow left the straight line (branch, jump, loop-back,
@@ -2263,7 +2282,7 @@ index 7fa8678..2624ad4 100644
  			}
  		}
  
-@@ -267,6 +378,8 @@ namespace dsp56k
+@@ -267,6 +379,8 @@ namespace dsp56k
  				m_interruptFunc(this);
  
  			const auto pc = getPC().toWord();
@@ -2272,7 +2291,7 @@ index 7fa8678..2624ad4 100644
  			LOGJITPC(pc);
  
  			// SAFETY NET: the JIT dispatch table only spans valid P memory. A PC outside of it (a jump/jsr to a
-@@ -305,7 +418,34 @@ namespace dsp56k
+@@ -305,11 +419,48 @@ namespace dsp56k
  
  			const auto op = fetchPC();
  
@@ -2307,6 +2326,20 @@ index 7fa8678..2624ad4 100644
  		}
  
  		template<typename Ta, typename Tb> void execPeriph() noexcept
+ 		{
++			// MD_PERIPH_BATCH=N: only consider peripherals every N instructions.
++			// isDue() is tested against the INSTRUCTION counter, and the two engines
++			// advance that counter differently: the interpreter creeps by one and so
++			// services a peripheral on the exact instruction it comes due, while the
++			// JIT jumps by a whole block and services it up to a block LATE. mdLib's
++			// transport was written and tuned against the JIT, so this reproduces
++			// the JIT's lateness in the interpreter. Default 1 = unchanged.
++			if(g_periphBatch > 1 && (m_instructions % g_periphBatch) != 0)
++				return;
++
+ 			// this is a super hot function and for some reason the compiler insists of doing all the stack frame work
+ 			// before this early out. To fix this, we move the remaining code into a helper func below, marked as noinline
+ 			if (ASMJIT_LIKELY(!perif[0]->isDue(m_instructions, m_cycles)))
 diff --git a/source/dsp56kEmu/error.h b/source/dsp56kEmu/error.h
 index 0fff7e1..55c6ce8 100644
 --- a/source/dsp56kEmu/error.h
