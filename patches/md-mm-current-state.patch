@@ -1,4 +1,4 @@
-### Snapshot of md-interp-work/mdmm, Wed Sep 16 20:05:36 CEST 2026
+### Snapshot of md-interp-work/mdmm, Wed Sep 16 20:08:36 CEST 2026
 
 diff --git a/base.cmake b/base.cmake
 index 0a880954..23428f2d 100644
@@ -569,7 +569,7 @@ index c46ec22b..81f06e34 100644
  
  		uint64_t m_mmHostTxCycle = 0;
 diff --git a/source/elektron/md/mdLib/mdhardware.cpp b/source/elektron/md/mdLib/mdhardware.cpp
-index c19c7790..0ae07731 100644
+index c19c7790..4849b343 100644
 --- a/source/elektron/md/mdLib/mdhardware.cpp
 +++ b/source/elektron/md/mdLib/mdhardware.cpp
 @@ -7,6 +7,7 @@
@@ -605,15 +605,16 @@ index c19c7790..0ae07731 100644
  					const auto desiredLevel = m_mdProducerPortCPending
  						? m_mdProducerPortCPendingLevel : m_mdProducerPortCVisible;
  					if(level == desiredLevel)
-@@ -533,6 +552,7 @@ namespace md
+@@ -533,6 +552,8 @@ namespace md
  					m_mdProducerPortCPending = true;
  					m_mdProducerPortCPendingLevel = level;
  					m_mdProducerPortCPendingEpoch = m_mdLinkFlushEpoch;
++					m_mdProducerPortCPendingArmCount = m_mdDma4ArmCount;
 +					++m_portCEdgeDeferred;	// DIAGNOSTIC
  					return;
  				}
  				if(!isMonomachine())
-@@ -581,6 +601,33 @@ namespace md
+@@ -581,6 +602,33 @@ namespace md
  		m_uc.reset();
  		m_uc.exec();	// prefetch warm-up (retires nothing; matches the synchronous harness)
  
@@ -647,7 +648,7 @@ index c19c7790..0ae07731 100644
  	}
  
  	void Hardware::setFrontPanelPublisher(
-@@ -602,6 +649,11 @@ namespace md
+@@ -602,6 +650,11 @@ namespace md
  
  	Hardware::~Hardware()
  	{
@@ -659,7 +660,7 @@ index c19c7790..0ae07731 100644
  		m_uc.setMidiTransmitTap({});
  	}
  
-@@ -929,14 +981,40 @@ namespace md
+@@ -929,14 +982,43 @@ namespace md
  				m_dspProducer.getPeriph().getPortC().setHostInputSource([this]()
  					-> dsp56k::TWord
  				{
@@ -688,11 +689,15 @@ index c19c7790..0ae07731 100644
 +						// DIAGNOSTIC: the release gate. A pending edge is only handed
 +						// over while the mixer's DMA4 receive window is open, so count
 +						// how often a waiting producer is refused for that reason.
-+						if((activeDma4.getDCR(4)
+ 						if((activeDma4.getDCR(4)
+-							& (1u << dsp56k::DmaChannel::De)) != 0)
 +							& (1u << dsp56k::DmaChannel::De)) == 0)
 +							++m_portCBlockedByDma4;
- 						if((activeDma4.getDCR(4)
- 							& (1u << dsp56k::DmaChannel::De)) != 0)
++						const bool windowOpen = (activeDma4.getDCR(4)
++							& (1u << dsp56k::DmaChannel::De)) != 0;
++						const bool openedSince = portCRelaxEnabled()
++							&& m_mdDma4ArmCount != m_mdProducerPortCPendingArmCount;
++						if(windowOpen || openedSince)
  						{
  							m_mdProducerPortCVisible = m_mdProducerPortCPendingLevel;
  							m_mdProducerPortCPending = false;
@@ -700,7 +705,7 @@ index c19c7790..0ae07731 100644
  							m_mdProducerPortCReleaseEpoch =
  								m_mdProducerPortCPendingEpoch;
  						}
-@@ -953,6 +1031,8 @@ namespace md
+@@ -953,6 +1035,8 @@ namespace md
  			// A request must have been observed before the next receive window.
  			// Discarding an unexpectedly unreleased pin prevents a stale edge from
  			// being promoted into the new DMA4 window.
@@ -709,7 +714,7 @@ index c19c7790..0ae07731 100644
  			m_mdProducerPortCPending = false;
  		}
  
-@@ -1153,6 +1233,16 @@ namespace md
+@@ -1153,6 +1237,16 @@ namespace md
  			std::fill_n(output.data(), _frames, dsp56k::TWord(0));
  
  		m_schedHostAudioActive = true;
@@ -726,7 +731,7 @@ index c19c7790..0ae07731 100644
  		const auto trimmed = renderHostAudio(m_schedHostAudio, m_audioOutputs, _frames,
  			[this](const uint32_t _chunk)
  			{
-@@ -1242,19 +1332,24 @@ namespace md
+@@ -1242,19 +1336,38 @@ namespace md
  
  			if(m_schedHostAudioActive)
  			{
@@ -747,6 +752,20 @@ index c19c7790..0ae07731 100644
  
  	bool Hardware::schedStep()
  	{
++		// Track DMA4 arming as an EDGE. The window is a clear-DE one-shot, so a
++		// handshake that requires it to be open at the instant the producer looks
++		// is a race by construction; counting arms lets the release ask the weaker
++		// and correct question, "has the window opened since this edge was
++		// deferred", without losing the ordering intent.
++		if(portCRelaxEnabled())
++		{
++			const bool armed = (m_dspMixer.getPeriph().getDMA().getDCR(4)
++				& (1u << dsp56k::DmaChannel::De)) != 0;
++			if(armed && !m_mdDma4WasArmed)
++				++m_mdDma4ArmCount;
++			m_mdDma4WasArmed = armed;
++		}
++
 +		// Safe point for the HREQ-paced release: the DSP's read callback only sets
 +		// a flag, because pushing from inside the HDI08's own read re-enters it.
 +		if(Dsp::hostBacklogEnabled())
@@ -758,7 +777,7 @@ index c19c7790..0ae07731 100644
  		const double ucPerFrame   = schedUcCyclesPerFrame();
  		const double quantumFrames= schedQuantumFrames(m_model);
  		const uint64_t clampCycles= schedClampCycles(m_model);
-@@ -1312,6 +1407,27 @@ namespace md
+@@ -1312,6 +1425,27 @@ namespace md
  		if(dsp1Pos < minPos) { minPos = dsp1Pos; who = 1; }
  		if(dsp2Pos < minPos) { minPos = dsp2Pos; who = 2; }
  
@@ -786,7 +805,7 @@ index c19c7790..0ae07731 100644
  		if(minPos >= target)
  			return false;							// everything has reached the shared clock
  
-@@ -1426,7 +1542,14 @@ namespace md
+@@ -1426,7 +1560,14 @@ namespace md
  			score.maximumRequestedCycles = std::max(
  				score.maximumRequestedCycles, diagnosticRequested);
  #endif
@@ -802,7 +821,7 @@ index c19c7790..0ae07731 100644
  				d.dsp().execUntilCycles(stopCyc);
  			else
  			{
-@@ -1450,8 +1573,6 @@ namespace md
+@@ -1450,8 +1591,6 @@ namespace md
  				schedDrainCodecOutput();			// keep the mixer ESSI1 output ring shallow
  		}
  
@@ -811,7 +830,7 @@ index c19c7790..0ae07731 100644
  		return true;
  	}
  
-@@ -1468,6 +1589,26 @@ namespace md
+@@ -1468,6 +1607,35 @@ namespace md
  			m_schedDspOriginUcCycles[index], _dspCycle - m_schedDspOriginCycles[index]);
  	}
  
@@ -826,6 +845,15 @@ index c19c7790..0ae07731 100644
 +			m_schedDspOriginCycles[i], m_schedUcCyclesDone - m_schedDspOriginUcCycles[i]);
 +	}
 +
++	bool Hardware::portCRelaxEnabled()
++	{
++		static const bool s_enabled = []() {
++			const char* e = std::getenv("MD_PORTC_RELAX");
++			return e && *e && *e != '0';
++		}();
++		return s_enabled;
++	}
++
 +	bool Hardware::portCEdgeQueueEnabled()
 +	{
 +		static const bool s_enabled = []() {
@@ -838,7 +866,7 @@ index c19c7790..0ae07731 100644
  	void Hardware::schedCatchUpDsp(const uint32_t _dspIndex)
  	{
  		// Run the target DSP inline up to the UC's current machine time
-@@ -1476,6 +1617,14 @@ namespace md
+@@ -1476,6 +1644,14 @@ namespace md
  		// of spinning while the DSP is frozen for the UC's whole background quantum. Bounded by the
  		// catch-up clamp; monotone (never runs the DSP backwards or past the UC).
  		const uint32_t i = _dspIndex & 1;
@@ -853,7 +881,7 @@ index c19c7790..0ae07731 100644
  #if MD_TRANSPORT_DIAGNOSTICS
  		auto& score = m_transportScorecard.coldFireToDsp[i];
  		++score.calls;
-@@ -1509,6 +1658,8 @@ namespace md
+@@ -1509,6 +1685,8 @@ namespace md
  		// MM flow control: a host-TX-backlogged DSP does not advance in catch-up either - the
  		// catch-up loops are how a DSP outruns the UC by thousands of words in the first place
  		// (see the schedStep backpressure comment). MD path untouched.
@@ -862,7 +890,7 @@ index c19c7790..0ae07731 100644
  		const bool s_mmBp = isMonomachine();
  		while(d.dsp().getCycles() < targetCyc && d.dsp().getCycles() < clampStop
  			&& (!s_mmBp
-@@ -1554,6 +1705,12 @@ namespace md
+@@ -1554,6 +1732,12 @@ namespace md
  			return;
  		}
  		auto& d = (c == 0) ? m_dspMixer : m_dspProducer;
@@ -875,7 +903,7 @@ index c19c7790..0ae07731 100644
  		const double producerPos = schedDspFramePos(p);
  		const double deltaFrames = producerPos - m_schedDspOriginFrame[c];
  		if(deltaFrames <= 0.0)
-@@ -1579,10 +1736,21 @@ namespace md
+@@ -1579,10 +1763,21 @@ namespace md
  			score.maximumRequestedCycles = std::max(score.maximumRequestedCycles, requested););
  		m_schedInLinkDelivery = true;
  		const bool bpGate = isMonomachine();
@@ -901,7 +929,7 @@ index c19c7790..0ae07731 100644
  		m_schedInLinkDelivery = false;
  		MD_TRANSPORT_RECORD(const auto executed = d.dsp().getCycles() - startCyc;
  			score.executedCycles += executed;
-@@ -1598,6 +1766,11 @@ namespace md
+@@ -1598,6 +1793,11 @@ namespace md
  				++score.unexpectedShort;);
  	}
  
@@ -914,7 +942,7 @@ index c19c7790..0ae07731 100644
  	{
  		m_schedFramesTotal += static_cast<double>(_machineFrames);
 diff --git a/source/elektron/md/mdLib/mdhardware.h b/source/elektron/md/mdLib/mdhardware.h
-index a513f77b..204ea400 100644
+index a513f77b..7d891a38 100644
 --- a/source/elektron/md/mdLib/mdhardware.h
 +++ b/source/elektron/md/mdLib/mdhardware.h
 @@ -1,11 +1,14 @@
@@ -975,13 +1003,14 @@ index a513f77b..204ea400 100644
  #endif
  
  		// Codec frames produced by the mixer.
-@@ -374,6 +404,19 @@ namespace md
+@@ -374,6 +404,23 @@ namespace md
  		dsp56k::TWord m_mdProducerPortCPendingLevel = 0;
  		uint64_t m_mdLinkFlushEpoch = 0;
  		uint64_t m_mdProducerPortCPendingEpoch = 0;
 +		std::deque<dsp56k::TWord> m_mdPortCQueue;	// ordered Port C transitions
 +	public:
 +		static bool portCEdgeQueueEnabled();
++		static bool portCRelaxEnabled();
 +	private:
 +		// DIAGNOSTIC: Port C handshake edge accounting; a discarded edge is a lost
 +		// mixer->producer block sync, which parks the producer in its poll at 0xbb.
@@ -991,6 +1020,9 @@ index a513f77b..204ea400 100644
 +		uint64_t m_portCEdgeDiscarded = 0;
 +		uint64_t m_portCReads = 0;
 +		uint64_t m_portCBlockedByDma4 = 0;
++		uint64_t m_mdDma4ArmCount = 0;
++		uint64_t m_mdProducerPortCPendingArmCount = 0;
++		bool     m_mdDma4WasArmed = false;
 +	private:
  		uint64_t m_mdProducerPortCReleaseEpoch = 0;
  		std::atomic<bool> m_mmLinkAwaitFresh{false};	// PDRC edge awaits DSP2's DMA reply
