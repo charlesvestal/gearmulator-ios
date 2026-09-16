@@ -1,0 +1,39 @@
+MD_EARLY tick=10 bytes=3146 tiles=314 ucPC=244 mixerPC=14ff00 producerPC=14ff00 mixerInstr=20323449 producerInstr=20318370 mixerCycles=101617607 producerCycles=101592201 ucCycles=40054426
+MD_WRITE_TRAP dsp=0x16b34d190 pc=14ff1d next=14ff1e value=fbd500 cycles=108765415 lc=00055b la=14ff20 sr=008019 sc=2
+MD_WRITE_REG r0=101328 n=000000 m=ffffff
+MD_WRITE_REG r1=14ffff n=000000 m=ffffff
+MD_WRITE_REG r2=000000 n=000000 m=ffffff
+MD_WRITE_REG r3=000000 n=000000 m=ffffff
+MD_WRITE_REG r4=000000 n=000000 m=ffffff
+MD_WRITE_REG r5=000000 n=000000 m=ffffff
+MD_WRITE_REG r6=000000 n=000000 m=ffffff
+MD_WRITE_REG r7=000000 n=000000 m=ffffff
+MD_EARLY tick=11 bytes=3146 tiles=314 ucPC=894 mixerPC=14ff00 producerPC=14ff1b mixerInstr=22328851 producerInstr=22534957 mixerCycles=111644617 producerCycles=111800636 ucCycles=44001820
+MD_EARLY tick=12 bytes=3146 tiles=314 ucPC=734 mixerPC=14ff00 producerPC=14ff21 mixerInstr=24393235 producerInstr=25375647 mixerCycles=121966537 producerCycles=124672667 ucCycles=48065312
+MD_WRITE_TRAP dsp=0x16b338358 pc=143e68 next=143e69 value=000000 cycles=146162025 lc=036cd9 la=143e69 sr=0083d0 sc=4
+MD_WRITE_REG r0=101328 n=000000 m=ffffff
+MD_WRITE_REG r1=000001 n=000000 m=ffffff
+MD_WRITE_REG r2=000000 n=000000 m=ffffff
+MD_WRITE_REG r3=000000 n=000000 m=ffffff
+MD_WRITE_REG r4=0001be n=000040 m=ffffff
+MD_WRITE_REG r5=000000 n=000000 m=ffffff
+MD_WRITE_REG r6=000000 n=000000 m=ffffff
+MD_WRITE_REG r7=000150 n=000000 m=ffffff
+MD_EARLY tick=15 bytes=3146 tiles=314 ucPC=20a mixerPC=4c9 producerPC=100096 mixerInstr=34348088 producerInstr=36656733 mixerCycles=152342471 producerCycles=152317062 ucCycles=60023587
+MD_WRITE_TRAP dsp=0x16b338358 pc=00042d next=00042e value=000000 cycles=157428044 lc=00000a la=00042e sr=0080d4 sc=2
+MD_WRITE_REG r0=0000ce n=000000 m=00001f
+MD_WRITE_REG r1=0000c0 n=ffffbf m=00001f
+MD_WRITE_REG r2=101327 n=017afc m=ffffff
+MD_WRITE_REG r3=101328 n=017afc m=ffffff
+MD_WRITE_REG r4=00000e n=000005 m=00001f
+MD_WRITE_REG r5=000020 n=000002 m=00001f
+MD_WRITE_REG r6=0006d8 n=000005 m=ffffff
+MD_WRITE_REG r7=000150 n=000000 m=ffffff
+MD_EARLY tick=20 bytes=3146 tiles=314 ucPC=23f588 mixerPC=4c4 producerPC=100096 mixerInstr=73612675 producerInstr=78998122 mixerCycles=203362247 producerCycles=203336838 ucCycles=80108849
+MD_EARLY tick=25 bytes=3146 tiles=314 ucPC=23f58e mixerPC=4d0 producerPC=100096 mixerInstr=112650301 producerInstr=121094778 mixerCycles=254087112 producerCycles=254061702 ucCycles=100078009
+MD_SNAP_COUNT 202
+MD_EARLY tick=30 bytes=3160 tiles=314 ucPC=201124 mixerPC=9da producerPC=bf mixerInstr=154767162 producerInstr=162981085 mixerCycles=318215261 producerCycles=307137210 ucCycles=120047171
+fresh boot state: ucPC=0x201124 ucCycles=720000005 mixerPC=0x9da producerPC=0xbb mixerCycles=1828788167 producerCycles=1828762759 bytes=3160 tiles=314 lit=748
+MD_PROGRAM dsp=0 hash=4e11815db4f755e5 nonzero=202
+MD_PROGRAM dsp=1 hash=1e7a88cba19ce116 nonzero=125648
+fresh boot: panel UART stream stopped early

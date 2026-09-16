@@ -116,7 +116,8 @@ M5 iPad Pro, interpreted, arm64, PGO:
 
 | synth | result |
 |---|---|
-| Machinedrum | 1.80-2.17x while executing; livelocks in boot -- see `MD_MM_IOS.md` |
+| Machinedrum | 2.416x measured throughput after a 4.64 s bench warmup; firmware panel boot still fails in interpreter mode; see `MD_MM_IOS.md` |
+| Monomachine | 0.71-0.79x with ThinLTO and MD/MM-trained PGO; below real time. Trigs produce samples in the device app, but no audible output was reported |
 | Osirus (Virus C) | 0.431x at 4 voices -- but see the caveat below |
 
 **A synth that runs its DSPs on their own threads does not measure honestly
@@ -133,6 +134,12 @@ Machinedrum does not have this problem: `md::Hardware` advances its MCU and
 both DSPs on the calling thread and spawns nothing, which is why its figure is
 directly comparable to the desktop's.
 
-The DSP56300 interpreter sustains about **200M instructions/sec per DSP** on an
-M5, roughly twice what a 101.6 MHz DSP56303 demands, and about twice what an M1
-desktop manages (~95M).
+The earlier 1.80-2.17x Machinedrum result sampled only the phase before the
+interpreter livelocked and was not an end-to-end throughput result. With the
+loop fix, ThinLTO, and a profile trained on both MD and MM firmware, MD renders
+five seconds of audio in 2.07 seconds after its bench warmup; this does not
+show that its firmware reached a usable screen. MM's bench produced nonzero
+audio, and iPad trigs also produce nonzero main-bus samples, but no audible
+output was reported. MM remains about 21-29% below real time. A Time Profiler capture
+shows costs spread across the scheduler, opcode dispatch, peripherals, parallel
+instructions, multiply, and DMA; there is no single stuck scheduler path.
