@@ -335,3 +335,94 @@ right before changing either.
 
 To verify: instrument cycles charged per PC over a fixed window at 14ff1b–14ff21
 in both engines and compare per-iteration cost of the host-poll spin.
+
+## Session 3, part 2 — two separate bugs, the first one solved
+
+### Bug 1 (SOLVED): the HDI08 drain overshot by a whole slice
+
+Instrumented `Dsp::writeWordToDsp` to measure what one host word actually costs
+(`MD_HOSTWORDS ... drainCyclesPerWord= drainExecsPerWord=`). Result:
+
+```
+interpreter (slice 32):  145 cycles/word, 1.0 exec calls
+JIT:                     5.4 cycles/word, 1.1-1.6 exec calls
+```
+
+Both use ~1 exec() per word, but ONE interpreter exec() charged ~145 cycles.
+No DSP56300 instruction costs that: 145 / ~4.5 cycles-per-instruction = 32 =
+exactly `maxInstructionsPerBlock`. The interpreter's exec() ran a full
+32-instruction slice and overshot; the JIT stopped at the small loader poll
+block. The ratio 145/5.4 ~= 27 is the same "27 extra polls" seen earlier.
+
+`MD_MAX_INSTR_PER_BLOCK` DOES affect the interpreter (an earlier note implying
+otherwise was wrong). At slice 4 or 1 the cost drops to 5.4/4.9 — matching the
+JIT — and the upload then tracks the JIT tick for tick: 192,000 words at tick 11
+(JIT 191,000), and at tick 12 mixer 18,000 / producer 250,000, identical to the
+JIT, with the mixer running its own program instead of parked in the loader.
+
+The upload throttle is therefore eliminated. This did NOT make MD boot, because
+there is a second, independent failure.
+
+Correction to an earlier claim in this file: the slice sweep "ruling out
+scheduler granularity" was measuring the wrong thing. Slice size matters a great
+deal to the drain cost; it just does not fix the second bug.
+
+### Bug 2 (OPEN): the mixer takes three DMA0 interrupts without completing
+
+Event trace of the failing interpreter run ends with three consecutive `0009c2`
+and no `0009a8` between them — literally the fatal condition (fault counter at
+x:$647 reaches 3 -> 9d8 -> 9da). Elsewhere in the run a double `9c2 9c2` occurs
+and survives, because a `9a8` resets the counter.
+
+Ruled out as the cause of bug 2:
+
+- **DMA/ESSI rate.** DMA0 period is IDENTICAL in both engines: median 147,456
+  cycles (JIT 147,449, mean 147,456 in both). The EssiClock is not running fast
+  in the interpreter. Mainline period 73,737, i.e. two completions per DMA
+  period when healthy.
+- **Lost Port C handshake edges.** The producer spins at 0xbb-0xbf polling bit 1
+  of x:$FFFFBD (ESSI_PDRC, Port C GPIO), waiting for a mixer->producer block
+  sync. mdhardware.cpp defers that edge and can DISCARD an unreleased one, which
+  looked like a lost-wakeup race. Instrumented it (`MD_PORTC deferred/released/
+  discarded`): **discarded = 0 in both engines**, deferred always equals
+  released. The handshake works.
+
+What the Port C counters DO show is where the run goes wrong, precisely:
+
+```
+tick  18..23   JIT and INT identical  (862, 998, 1138, 1274, 1410, 1550)
+tick  24       JIT 1686   INT 1928     <-- INT emits 378 edges in one tick
+tick  25       JIT 1826   INT 1928         against a steady ~136-140/tick
+tick  26       JIT 1962   INT 2110     <-- mixer enters 9da
+```
+
+The two engines are bit-identical through tick 23. At tick 24 the interpreter's
+mixer emits a BURST of ~378 block-sync edges, about 2.8x the steady rate, while
+sitting at PC 42 (the healthy render dispatch, same as the JIT). Two ticks later
+it faults. The burst is the anomaly to chase, not the 9da hang, which is the
+consequence.
+
+Note the producer's poll loop at 0xbb is a 5-instruction loop ending in `beq`,
+NOT a jump-to-self, so the JIT's spin-loop detector never matched it either.
+
+### Next step
+
+Trace the mixer across ticks 23-26 with cycle stamps and find what produces the
+tick-24 burst of Port C writes. Correlate against DMA0 (9c2) and mainline (9a8)
+events in the same cycle window, and against the mixer's DMA4 enable state,
+since the edge release is gated on DMA4 being enabled.
+
+### Diagnostics added (all env-gated / off by default)
+
+- `DSP_PC_HIST=<dir>` — per-PC execution histogram, dumped at exit (dsp.cpp).
+- `MD_NO_FRAMESYNC_FF=1` — disable the JIT frame-sync fast-forward (jitops_jmp.cpp).
+- `MD_SPIN_FREE=1` — do not charge cycles for an idle self-spin. **LIVELOCKS**
+  (the scheduler's `while(cycles < deadline)` never exits). Kept only as a
+  documented dead end; do not enable.
+- `MD_DISASM="dsp,startHex,endHex,tick"` — disassemble a P-memory range once
+  (panelReadinessFirmwareTest).
+- `MD_HOSTWORDS` now reports per-word drain cost; `MD_PORTC` reports handshake
+  edge accounting.
+
+`MD_MAX_DO_ITERATIONS` large values DEADLOCK (0 and 64 both hang), same as
+unbounded. Do not raise it.
