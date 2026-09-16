@@ -1,4 +1,4 @@
-### Snapshot of md-interp-work/mdmm, Wed Sep 16 22:01:23 CEST 2026
+### Snapshot of md-interp-work/mdmm, Wed Sep 16 22:43:57 CEST 2026
 
 diff --git a/base.cmake b/base.cmake
 index 0a880954..23428f2d 100644
@@ -86,7 +86,7 @@ index e5dffe6d..d450de65 100644
  		mdJucePlugin_VST3 mmJucePlugin_VST3
  		mdJucePlugin_AU mmJucePlugin_AU
 diff --git a/source/elektron/md/mdLib/mddsp.cpp b/source/elektron/md/mdLib/mddsp.cpp
-index 3cc8a7b4..4f901ac3 100644
+index 3cc8a7b4..b2e11268 100644
 --- a/source/elektron/md/mdLib/mddsp.cpp
 +++ b/source/elektron/md/mdLib/mddsp.cpp
 @@ -1,4 +1,11 @@
@@ -113,7 +113,25 @@ index 3cc8a7b4..4f901ac3 100644
  #if defined(__APPLE__) && defined(__aarch64__)
  		// JIT blocks are first compiled synchronously by the audio thread. On Apple
  		// silicon, the optimizer's cold cost exceeds its measured steady-state gain.
-@@ -183,6 +195,26 @@ namespace md
+@@ -153,6 +165,17 @@ namespace md
+ 				m_mmHostTxCycle = m_dsp.getCycles();
+ 				hdiTransferDSPtoUC();
+ 			});
++		else if(timedHostRxEnabled())
++			// MD_TIMED_HOSTRX: MD needs the same production timestamp MM records.
++			// Without it a word produced while the DSP is ahead of the machine
++			// clock becomes UC-visible immediately, i.e. published into the host's
++			// past, and how far ahead the DSP is at that instant is exactly what
++			// differs between the JIT and the interpreter.
++			hdi08().setWriteTxCallback([this]
++			{
++				m_mmHostTxCycle = m_dsp.getCycles();
++				hdiTransferDSPtoUC();
++			});
+ 
+ 		// ---- Bridge the ColdFire-facing HI08 register file to the DSP (n2x model) ----
+ 
+@@ -183,6 +206,26 @@ namespace md
  		// retain the default always-ready behavior.
  		m_hdiUC.setForceTxde(false);
  
@@ -140,7 +158,7 @@ index 3cc8a7b4..4f901ac3 100644
  		m_hdiUC.setInitHdi08Callback([this]
  		{
  			// Complete host-port initialization and report the transmitter ready.
-@@ -200,9 +232,28 @@ namespace md
+@@ -200,9 +243,28 @@ namespace md
  			hdiTransferUCtoDSP(_word);
  		});
  
@@ -171,7 +189,7 @@ index 3cc8a7b4..4f901ac3 100644
  	}
  
  	namespace
-@@ -261,6 +312,11 @@ namespace md
+@@ -261,6 +323,11 @@ namespace md
  	{
  		m_hardware.notifyHostPumpStateChanged();
  
@@ -183,7 +201,7 @@ index 3cc8a7b4..4f901ac3 100644
  		if(_needMoreData)
  		{
  			// A blocking host read needs its peer to make progress on this single
-@@ -302,27 +358,276 @@ namespace md
+@@ -302,27 +369,276 @@ namespace md
  		writeWordToDsp(_word);
  	}
  
@@ -464,7 +482,7 @@ index 3cc8a7b4..4f901ac3 100644
  		// A CVR write may not overtake a host command already in flight. Hold the current
  		// transaction in emulated time until RTI clears host-command-busy.
  		if(!hdi08().hostCommandBusy())
-@@ -345,6 +650,12 @@ namespace md
+@@ -345,6 +661,12 @@ namespace md
  		// Under the arbitration config, route the host-command vector through the DSP-side HDI08
  		// so it raises HCP and arms the handler hold as it injects (native DSP56303 host-command
  		// dispatch). Otherwise fall back to the legacy out-of-band inject (default uitest path).
@@ -477,7 +495,7 @@ index 3cc8a7b4..4f901ac3 100644
  		if(hdi08().hostCommandArbitration())
  			hdi08().writeHostCommand(_vba);
  		else
-@@ -354,8 +665,10 @@ namespace md
+@@ -354,8 +676,10 @@ namespace md
  	void Dsp::hdiSendIrqToDSP(const uint8_t _irq)
  	{
  		// Catch the DSP up to the UC's current machine time before the CVR is
@@ -490,7 +508,7 @@ index 3cc8a7b4..4f901ac3 100644
  			m_hardware.schedCatchUpDsp(m_index);
  		// Preserve Monomachine host-command ordering. Data words precede the next
  		// command, so drain the receive path before dispatching that command. Run the DSP
-@@ -388,6 +701,21 @@ namespace md
+@@ -388,9 +712,51 @@ namespace md
  
  		dispatchHostCommandInterrupt(_irq);
  
@@ -512,11 +530,45 @@ index 3cc8a7b4..4f901ac3 100644
  		hdiTransferDSPtoUC();
  	}
  
-@@ -403,8 +731,22 @@ namespace md
++	bool Dsp::timedHostRxEnabled()
++	{
++		static const bool s_enabled = []() {
++			const char* e = std::getenv("MD_TIMED_HOSTRX");
++			return e && *e && *e != '0';
++		}();
++		return s_enabled;
++	}
++
++	void Dsp::ucStreamLog(const char _type, const uint32_t _value, const uint32_t _idx) const
++	{
++		static const bool s_on = std::getenv("MD_UCSTREAM") != nullptr;
++		if(!s_on)
++			return;
++		static uint64_t s_seq = 0;
++		static uint64_t s_cap = []() -> uint64_t {
++			if(const char* e = std::getenv("MD_UCSTREAM_MAX")) return std::strtoull(e, nullptr, 10);
++			return 400000;
++		}();
++		if(s_seq >= s_cap)
++			return;
++		std::fprintf(stderr, "UCS %llu %c dsp%u val=%06x ucPC=%06x ucCyc=%llu\n",
++			static_cast<unsigned long long>(s_seq++), _type, _idx, _value,
++			static_cast<uint32_t>(m_hardware.getUC().getPC()),
++			static_cast<unsigned long long>(m_hardware.getUC().getCycles()));
++	}
++
+ 	uint8_t Dsp::hdiUcReadIsr(uint8_t _isr)
+ 	{
+ 		// Catch the DSP up to the UC's current machine time before reporting
+@@ -403,8 +769,26 @@ namespace md
  		_isr = static_cast<uint8_t>((_isr & ~mc68k::Hdi08::Rxdf)
  			| (m_hdiUC.canReceiveData() ? 0 : mc68k::Hdi08::Rxdf));
  
 +		++m_isrReads;	// DIAGNOSTIC: does the firmware poll before writing?
++		// MD_UCSTREAM=1: log the CONTENT of every UC-visible host-port event. The
++		// ColdFire's only inputs besides its own timers are these reads, so the
++		// first index at which two engines' streams differ IS the root divergence.
++		ucStreamLog('I', _isr, m_index);
 +		// DIAGNOSTIC: WHERE is the ColdFire when it polls? It burns ~97k polls by
 +		// tick 18 against the JIT's ~6k in identical emulated cycles, so it is
 +		// sitting in a loop the JIT does not sit in.
@@ -535,7 +587,29 @@ index 3cc8a7b4..4f901ac3 100644
  		_isr &= ~0x18;
  		_isr |= static_cast<uint8_t>(hf23);
  
-@@ -448,8 +790,15 @@ namespace md
+@@ -434,8 +818,19 @@ namespace md
+ 			if(!m_timedHostRx.pending() && hdi08().hasTX())
+ 			{
+ 				const auto word = hdi08().readTX();
+-				m_timedHostRx.stage(word,
+-					m_hardware.hostRxReadyCycle(m_index, m_mmHostTxCycle));
++				const auto ready = m_hardware.hostRxReadyCycle(m_index, m_mmHostTxCycle);
++				static uint32_t s_n = 0;
++				if(s_n < 10)
++				{
++					++s_n;
++					std::fprintf(stderr, "MD_STAGE dsp%u word=%06x txCyc=%llu ready=%llu now=%llu dspCyc=%llu\n",
++						m_index, word,
++						static_cast<unsigned long long>(m_mmHostTxCycle),
++						static_cast<unsigned long long>(ready),
++						static_cast<unsigned long long>(m_hardware.hostCurrentCycle()),
++						static_cast<unsigned long long>(m_dsp.getCycles()));
++				}
++				m_timedHostRx.stage(word, ready);
+ 				m_hardware.notifyHostPumpStateChanged();
+ 			}
+ 
+@@ -448,9 +843,52 @@ namespace md
  		}
  
  		const bool hasTx = hdi08().hasTX();
@@ -545,14 +619,51 @@ index 3cc8a7b4..4f901ac3 100644
 +		++m_dspToUcCalls;
 +		if(hasTx) ++m_dspToUcHadTx;
 +		if(hasTx && !m_hdiUC.canReceiveData()) ++m_dspToUcBlocked;
++		if(timedHostRxEnabled())
++		{
++			{
++				static uint32_t s_e = 0;
++				if(s_e < 8 && hasTx)
++				{
++					++s_e;
++					std::fprintf(stderr, "MD_TIMEDENTRY dsp%u hasTx=1 canRx=%d pending=%d\n",
++						m_index, m_hdiUC.canReceiveData()?1:0, m_timedHostRx.pending()?1:0);
++				}
++			}
++			// Publish on MACHINE time, exactly as the MM path does. Stage the word
++			// with the host cycle its production corresponds to, and hand it over
++			// only once the UC has actually reached that cycle. This makes every
++			// UC-visible event a function of machine time rather than of how far
++			// this engine happened to run the DSP ahead.
++			if(!m_hdiUC.canReceiveData())
++				return false;
++			if(!m_timedHostRx.pending() && hasTx)
++			{
++				const auto word = hdi08().readTX();
++				m_timedHostRx.stage(word,
++					m_hardware.hostRxReadyCycle(m_index, m_mmHostTxCycle));
++				m_hardware.notifyHostPumpStateChanged();
++			}
++			uint32_t word;
++			if(!m_timedHostRx.take(m_hardware.hostCurrentCycle(), word))
++				return false;
++			++m_dspToUcSent;
++			ucStreamLog('R', word, m_index);
++			m_hdiUC.writeRx(word);
++			m_hardware.notifyHostPumpStateChanged();
++			return true;
++		}
++
  		if(m_hdiUC.canReceiveData() && hasTx)
  		{
 +			++m_dspToUcSent;
  			const auto echo = hdi08().readTX();
++			ucStreamLog('R', echo, m_index);
  			m_hdiUC.writeRx(echo);
  			m_hardware.notifyHostPumpStateChanged();
+ 			return true;
 diff --git a/source/elektron/md/mdLib/mddsp.h b/source/elektron/md/mdLib/mddsp.h
-index c46ec22b..0c53a1d2 100644
+index c46ec22b..3a0d3e9d 100644
 --- a/source/elektron/md/mdLib/mddsp.h
 +++ b/source/elektron/md/mdLib/mddsp.h
 @@ -2,6 +2,8 @@
@@ -586,7 +697,7 @@ index c46ec22b..0c53a1d2 100644
  		void onDspBootFinished();
  
  		// Continuously drain this DSP's HOTX into the UC-facing HI08 receive queue, bounded so the
-@@ -71,7 +81,14 @@ namespace md
+@@ -71,10 +81,21 @@ namespace md
  		void    onUCRxEmpty(bool _needMoreData);
  		void    hdiTransferUCtoDSP(uint32_t _word);
  		void    waitForHostCommandIdle();		// wait in emulated time until no host command is in flight
@@ -602,7 +713,14 @@ index c46ec22b..0c53a1d2 100644
  		void    hdiSendIrqToDSP(uint8_t _irq);
  		void    dispatchHostCommandInterrupt(uint8_t _vba);
  		uint8_t hdiUcReadIsr(uint8_t _isr);
-@@ -91,6 +108,32 @@ namespace md
++	public:
++		static bool timedHostRxEnabled();
++	private:
++		void    ucStreamLog(char _type, uint32_t _value, uint32_t _idx) const;	// DIAGNOSTIC
+ 		bool    hdiTransferDSPtoUC();
+ 
+ 		Hardware&        m_hardware;
+@@ -91,6 +112,32 @@ namespace md
  		dsp56k::DspBoot                m_boot;
  
  		// Published once boot state is fully initialized; acquired by the scheduler.

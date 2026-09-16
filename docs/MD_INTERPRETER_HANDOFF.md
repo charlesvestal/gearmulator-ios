@@ -1935,3 +1935,107 @@ No improvement, then deadlock. **Peripheral service cadence is excluded.**
 
 Conclusion: nothing to inherit. Making MD/MM run interpreted is new work on this
 fork, and the transport is the part that has to be written for it.
+
+## Session 3, part 26 — ROOT DIVERGENCE FOUND BY CONTENT, and the fix that half-works
+
+An external consult corrected the central conclusion of this document. **"The
+JIT wins by being fast" was WRONG**, and the correct mechanism is measurable:
+
+**Machine-time PHASE ERROR of DSP->UC publication.** How far a DSP's private
+cycle counter has overshot the shared machine clock at the instant its state
+becomes UC-visible. Bounded ~120 cycles under the JIT; up to `slack`=2048 or the
+100k clamp under the interpreter. Identical per-tick totals prove nothing about
+WITHIN-tick event timing, which is what the firmware actually observes.
+
+### The MM path already solves this; the MD path does the forbidden thing
+
+`Dsp::hdiTransferDSPtoUC` (mddsp.cpp:767). The MM branch stages the word in
+`m_timedHostRx` with `hostRxReadyCycle(m_mmHostTxCycle)` and its comment says
+why: *"A DSP running ahead must not publish RXDF/HREQ before the host reaches
+its timestamp."* **The MD branch publishes immediately** — `readTX()` ->
+`writeRx()` with no machine-time gate. A word produced while the mixer was 2,000
+cycles ahead becomes UC-visible now, i.e. published into the host's past.
+
+### The first content-level divergence (new: `MD_UCSTREAM=1`)
+
+Logging the CONTENT of every UC-visible host-port event — the ColdFire's only
+inputs besides its own timers — and diffing the two engines gives the root
+divergence by construction. The whole prior investigation only ever compared
+aggregate per-tick counters, which cannot see this.
+
+```
+index 1552,  ucPC=0x734,  ucCyc=40,740,095   (identical UC state in both;
+                                              the four prior events are byte-identical)
+  JIT:  R dsp1 val=000000    <- the producer DELIVERS an RX word
+  INT:  I dsp1 val=000006    <- no word; the ISR read returns Txde|Trdy with
+                                RXDF clear, and the MCU keeps polling forever
+```
+
+At the SAME UC cycle and the SAME PC, one engine's producer publishes a word and
+the other's does not. `ucPC 0x734` is exactly the address the MCU was already
+known to spin at. This is the root cause, located.
+
+### Fix attempted: port the MM timed publication to MD (`MD_TIMED_HOSTRX=1`)
+
+Stage MD words with their production timestamp; hand over only once the UC has
+reached that cycle. First change all session to move the key metric the RIGHT
+way:
+
+```
+                        baseline    MD_TIMED_HOSTRX=1     JIT
+host commands (vec12)        474                  642  15,204
+words delivered (sent)        59                  123     299
+mixerPC @ tick 28            9da    43 (healthy, JIT-like)  3c-43
+```
+
+**But it deadlocks at tick 28** and sits there indefinitely with both DSPs on
+healthy PCs. The reason is structural and was predictable: `take()` only
+releases a word once `hostCurrentCycle() >= readyCycle`, while the MCU is
+blocked waiting for that very word, so the UC clock stops advancing and the
+ready cycle is never reached. MM escapes this because its UC is not blocked the
+same way.
+
+So timed publication is necessary but not sufficient on its own: it must be
+paired with something that keeps machine time advancing while the UC waits —
+which is the single-threaded `ucYieldLoop` equivalent (run the whole-machine
+interleave from inside the wait, UC parked, until the predicate is true). That
+is consultant experiment #5 and the structurally correct endpoint.
+
+### Ranked next steps (from the consult, with my measurements folded in)
+
+1. **Pair `MD_TIMED_HOSTRX` with a condition-driven UC wait.** The deadlock is
+   the only thing between this and a boot. Needs the reentrancy fix
+   (`writeWordToDsp` is called from inside `schedStep`->`processUC`): either an
+   explicit continuation/state machine, or make `schedStep` reentrant with the
+   UC excluded from selection.
+2. **Measure the phase error directly** — at every publication event record
+   `dsp.getCycles() - schedDspClockDeadline(idx)`, histogram per engine.
+   Prediction: JIT ~±120, INT tails to +2048/+100k. Confirms or kills the model
+   in one run.
+3. **Gate the other two leaks the same way**: IRQ4 is asserted from a queue
+   DEPTH that depends on drain burstiness (`pumpDsp2HostRequest`,
+   mdhardware.cpp:1126) — an interrupt line driven by engine identity; and
+   `hdiUcReadIsr` composes flags from DSP state after `schedCatchUpDsp`, which
+   is a NO-OP when the DSP is already ahead, so polls read the DSP's future.
+4. **Interrupt-entry phase** (consult #4): the interpreter dispatches
+   `m_interruptFunc` before EVERY instruction, the JIT once per block, so ISR
+   entry points differ even with matched step granularity. Likely the residual
+   +28,455-instruction gap at tick 11 that survived MINSTEP.
+
+### Genuine code bug found by the consult (unfixed, low risk)
+
+`DSP::exec()` interpreter path, dsp.h:262 — the first branch
+`if(!config.maxDoIterations || !sr_test_noCache(SR_LF)) { execInterpreter(); return; }`
+makes the following `if(!sr_test_noCache(SR_LF))` block, whose comment claims to
+"match the JIT's granularity outside hardware loops", **unreachable dead code**.
+Actual behaviour: 1 instruction outside hardware loops, up to 32 inside. Every
+"granularity ruled out" result in this document was measured on a binary that
+did not do what its comments say.
+
+### State
+
+```
+interpreter, all gates OFF:   3380 bytes, mixerPC 9da   (unchanged)
+JIT:                         26894 / 22090  PASSES
+dsp56kTestRunner:             exit 0
+```
