@@ -1475,3 +1475,71 @@ words, and why the interpreter's mixer — alive, on its own program, with a
 healthy transport and steady cycles — does not reach it. `MD_TX hadTx` is the
 readout: a working fix has the interpreter's climbing past 59 at tick 24.
 Compare mixer PC histograms between engines restricted to ticks 22-26.
+
+## Session 3, part 18 — the divergence is a command code, and the clamp is not tunable
+
+### Diffing executed mixer code names the branch
+
+PC histograms for both engines over the same 3-second window, diffed. Only 16
+PCs are executed by the JIT's mixer and NEVER by the interpreter's. The hottest:
+
+```
+000a01 / 000a00   n=34,031      a loop the interpreter never enters
+000095 / 97 / 99 / 9b   n~6,183  the fall-through of one branch
+0006cc, 000300, 0002fd, 0002de, 000a06, 0006bc, 0006cd, 0006f6, 00039d, 000309
+```
+
+Disassembling the branch:
+
+```
+90: move x:(r0)+,b      ; read a command word from a queue
+91: move a,y:>$1c4
+93: cmp #<$6,b
+94: bne int_00009c      ; the interpreter ALWAYS takes this
+95: move y:>$1c6,b      ; the JIT falls through -- command == 6
+97: move b,r5
+98: add #<$20,b
+99: move b,y:>$1c6
+9b: bra int_0000a2
+```
+
+The mixer dispatches on a command code and **the interpreter never sees code
+6**. This is a DATA difference, not a timing one: the command stream itself
+differs, which is precisely the host commands the MCU never issues
+(474 against 15,204). The 0xa00 loop is what that branch leads to.
+
+So the firmware is not mistiming anything. It is correctly processing a command
+stream that is missing most of its commands.
+
+### The clamp is brittle and cannot close the gap
+
+Sweeping `MD_HDI08_SLACK` against the host-command count:
+
+```
+slack        panel     mixVec12      note
+1024          3160          461
+2048 (dflt)   3380          474
+3072             -            -      HANGS
+4096             -            -      HANGS
+8192             -            -      HANGS
+1e9 (off)     3160           41
+```
+
+A narrow working band at 1024-2048, everything above it deadlocks, and
+disabling it drops the count tenfold. Nothing approaches the JIT's 15,204. Also
+retested: `MD_MAX_INSTR_PER_BLOCK=4`, which earlier made the UPLOAD match the
+JIT tick-for-tick, gives mixVec12=41 — matching the JIT on upload timing makes
+the metric that matters ten times worse. This is not a tuning problem and must
+stop being treated as one.
+
+### Bottom line for whoever resumes
+
+The failure is a bootstrap that never completes, and it is now pinned to a
+single observable: **the MCU issues 474 host commands where the JIT issues
+15,204, and the mixer consequently never receives command code 6.**
+
+Everything else in this document is either fixed, excluded, or downstream of
+that. The remaining work is on the ColdFire side: establish what the MCU is
+executing while it burns 97,379 host-port polls by tick 18 (the JIT burns
+6,303 in the same emulated cycles), and what condition would let it proceed to
+issue command 6. That is a ColdFire trace, not another DSP experiment.
