@@ -1782,3 +1782,77 @@ available there. Every wild-PC bug in any firmware now reports its PC and halts
 that DSP instead of taking the app down. This does not make MD boot, but it
 removes a whole class of unrecoverable iOS failures and makes the remaining ones
 diagnosable on-device.
+
+## Session 3, part 23 — more time does not help, and the final ledger
+
+Ran the all-alive configuration (`MD_HOST_BACKLOG=1`) for 60 emulated seconds,
+600 ticks, more than three times the readiness test's window:
+
+```
+tick 600: bytes=3160 mixerPC=9da producerPC=bd
+          mixerInstr=2,063,678,265  ucCycles=2,400,000,004
+```
+
+Unchanged. It is a hard fault, not slowness, and no amount of runtime closes it.
+MD also never triggers the new invalid-PC guard (0 reports), so the wild-PC class
+of failure is not involved on this machine.
+
+## SESSION 3 FINAL LEDGER
+
+**MD does not boot under the interpreter.** 3380 bytes against the 26,894 a
+passing JIT run reaches.
+
+### Fixed (real defects, verified)
+
+1. **Interpreter PC guard** (dsp.cpp, NOT gated) — `execOp` indexed
+   `m_opcodeCache` with an unchecked PC and called the result. The JIT had
+   guarded this for years; the interpreter had not. Turns a host-process SIGSEGV
+   into a diagnosable halt. Caught the MM crash and named it.
+2. **Per-host-word drain cost** 145 -> 6.5 cycles (`execMinimalStep`,
+   `MD_DRAIN_MINSTEP`).
+3. **Host-word data loss** 538 -> 0, and lumpy cycle delivery made
+   JIT-identical (`MD_HOST_BACKLOG` + the UC stall).
+4. **ESSI link flood** 1042 -> 113 frames (`MD_PORTC_RELAX`).
+
+### Excluded with controls
+
+Frame-sync fast-forward; scheduler granularity; bounded DO; ESSI/DMA rate;
+lost Port C edges; the RX interrupt latch; engine-dependent DMA pacing; Port C
+edge collapsing; HF2/HF3 flags; dropped or blocked interrupts; a full HDI08
+receive ring; incorrect TXDE/TRDY derivation; insufficient runtime.
+
+### Proven not tunable
+
+Twenty-plus measured configurations across four independent knobs. Every setting
+that makes the interpreter resemble the JIT on one axis makes the outcome worse,
+and several deadlock. The response is non-monotone and discontinuous in both
+directions.
+
+### The fault, with a measured address at every link
+
+```
+ColdFire spins at ucPC 0x734 waiting for a word from the mixer
+ -> issues 474 host commands instead of 15,204
+   -> the mixer never sees command code 6 at its dispatch (P:0x93)
+     -> never enters the P:0xa00 loop, never arms DMA channel 5
+       -> ~13x fewer mixer interrupts; the DMA4 window stays shut
+         -> the producer is never released from its Port C poll (P:0xbb)
+           -> the ESSI link floods, 1042 frames against a steady 5
+             -> the mixer's mainline cannot complete between DMA0 interrupts
+               -> the third one sends it to the error loop at P:0x9da
+```
+
+### The one-sentence conclusion
+
+No individual mechanism in this emulator is wrong; the boot depends on the
+ColdFire and the mixer meeting inside a window that the JIT clears on speed
+alone, and making that rendezvous robust — or removing the dependency — is a
+design change to mdLib's transport, not a defect repair or a parameter choice.
+
+### Also established
+
+Monomachine does not run under the interpreter either: it resets to the
+DSP56303 bootstrap ROM at 0xFF0000 about two billion instructions in, an address
+this emulator does not map. Interpreter support is unproven for BOTH Elektron
+targets. That is the honest state of "confidence with the MD interpreter for
+iPad".
