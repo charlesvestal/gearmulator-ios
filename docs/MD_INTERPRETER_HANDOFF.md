@@ -1071,3 +1071,64 @@ Instrument the Port C rendezvous and the link together across ticks 23-27:
 PC, and both ring depths. The question is why the producer stops being released
 from its poll at tick 24, given the handshake counters were still identical at
 tick 23.
+
+## Session 3, part 12 — Port C edge queue tried and rejected
+
+Hypothesis: the rendezvous COLLAPSES rapid transitions. It compares a new level
+against a single pending level, so a 1->0->1 burst nets to no change and the
+producer, which polls for a CHANGE, never sees an edge. That fits the measured
+378-edge burst at tick 24.
+
+Implemented `MD_PORTC_EDGE_QUEUE=1`: an ordered deque of transitions, one
+released per producer observation, still gated on the mixer's DMA4 window.
+
+Result: WORSE, and instructively so.
+
+```
+                       producerIn ring     producerPC     mixerPC
+default                 1,1,113,6,1042,0       bb           9da
+with edge queue         0,0,0,0,0,0 ...        bb           9da
+```
+
+The link never fills at all. Releasing one edge per observation drains the queue
+more slowly than the mixer fills it, so the producer is released even less often
+than before and parks in its poll from the start; the link then never carries
+frames. Panel 3160, mixer still 9da.
+
+So edge collapsing is NOT the mechanism, or at least fixing it in isolation
+makes the release rate the binding constraint instead. Do not re-try an ordered
+queue without also addressing the release gate (the DMA4 window), which is what
+actually determines how often the producer is let go.
+
+Left in the tree, OFF by default.
+
+## Session 3 — closing state
+
+```
+interpreter, all gates OFF:   3380 bytes, mixerPC 9da   (unchanged from session start)
+JIT:                         26894 / 22090  PASSES
+dsp56kTestRunner:             exit 0
+```
+
+**MD does not boot under the interpreter.** What this session established, in
+order of usefulness to whoever picks it up:
+
+1. Bug 1 (drain overshoot) is FIXED in code — `execMinimalStep()`, 145 -> 6.5
+   cycles per host word — gated because the clamp deadlocks with it.
+2. The UC stall + overflow-only backlog makes the host transport HEALTHY:
+   worst drain 100,048 -> 2,063 cycles, words lost 538 -> 0, mixer cycle
+   delivery indistinguishable from the JIT's. The fault survives it.
+3. The fifth and current cause is the inter-DSP ESSI link flooding (1042 frames
+   against the JIT's steady 5) while the producer sits in its Port C poll.
+4. Ruled out with controls: frame-sync fast-forward, scheduler granularity,
+   bounded DO, ESSI/DMA rate, lost Port C edges, the RX interrupt latch,
+   DMA pacing being engine-dependent, and Port C edge collapsing.
+5. The JIT is not more correct anywhere here. It is fast enough never to reach
+   the failing states, which is precisely why only the iPad path breaks.
+
+The open question is narrow and reproducible: **why does the producer stop
+being released from its Port C poll at tick 24**, when the handshake counters
+are identical to the JIT's through tick 23? The release gate
+(`m_mdOnDemandRendezvousActive` + the mixer's DMA4 enable window,
+mdhardware.cpp ~525 and ~962) is the place to look, with `MD_LINK` ring depth
+as the readout.
