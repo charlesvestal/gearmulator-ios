@@ -1600,3 +1600,28 @@ The two candidate readings, which the disassembly will settle:
 
 Reading 2 is the cheaper one to test and fits the evidence that every other UC
 poll site is identical. Start there.
+
+### Reading 2 checked and REJECTED: the flags are derived correctly
+
+`mc68k::Hdi08::canReceiveData()` returns `(raw ISR & Rxdf) == 0`, and
+`Hdi08::writeRx()` latches a queued word immediately whenever the latch is free.
+So mdLib's line
+
+```cpp
+_isr = (_isr & ~Rxdf) | (m_hdiUC.canReceiveData() ? 0 : Rxdf);
+```
+
+is effectively a no-op copy of an already-correct bit. RXDF does reflect a word
+waiting for the host. The flag derivation is not the bug.
+
+That leaves reading 1: a genuine bootstrap dependency. The MCU at 0x734 waits
+for a word the mixer sends only after processing a command the MCU has not yet
+issued, and the JIT clears it on timing alone. Both mixers send 57-59 words
+early and only the JIT's continues past that point, which is consistent: the
+first exchange happens in both, and only one of them gets far enough to keep the
+loop turning.
+
+If that holds, no single mechanism in this emulator is wrong, and the fix is a
+decision about the timing model rather than a defect repair — which is why every
+individual mechanism measured in this session has come back either correct or
+correctable without changing the outcome.
