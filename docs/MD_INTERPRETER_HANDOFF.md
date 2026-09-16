@@ -1716,3 +1716,69 @@ Test command:
 GEARMULATOR_MM_FIRMWARE_BIN=<MM OS 1.32b .bin> \
   build-interp/source/elektron/md/mdLibTest/mmBootFirmwareTest
 ```
+
+## Session 3, part 22 — FIXED: the interpreter no longer crashes the host on a bad PC
+
+The MM segfault is diagnosed and the crash itself is fixed.
+
+### Diagnosis
+
+The macOS crash report puts the fault inside `dsp56k::DSP::execOp`, reached from
+`schedStep -> processAudio`, as `EXC_BAD_ACCESS` on a wild address. `execOp`
+indexes `m_opcodeCache[currentOp]` with no bounds check, and that vector is
+sized to `mem.sizeP()`, so a PC outside P memory is an out-of-bounds read of a
+function pointer which is then called.
+
+The JIT path has had a guard for exactly this since before this session
+(`g_jitPcGuard` -> `onInvalidPC`, dsp.h). **The interpreter had no equivalent.**
+That asymmetry is why the same firmware kills the process on one engine and not
+the other.
+
+### Fix
+
+Added the matching check in `DSP::execOp` (dsp.cpp), one compare on a hot path,
+branch never taken in normal operation:
+
+```cpp
+if(ASMJIT_UNLIKELY(currentOp >= m_opcodeCache.size()))
+{
+    onInvalidPC(currentOp);
+    return;
+}
+```
+
+`m_opcodeCache` is sized to `mem.sizeP()`, so this condition means the PC really
+has left valid P memory, which is what `onInvalidPC` already reports and halts
+on. Not env-gated: this is a correctness fix, not a diagnostic.
+
+### What it turned the crash into
+
+```
+[DSP] INVALID PC ff0000 (valid P memory is 0 - 7fffff), DSP halted.
+sr=0880d8 sp=1 omr=004d0d mode=0 instructions=1996241008
+```
+
+`0xFF0000` is the DSP56303's on-chip bootstrap ROM, and the reset vector at P:0
+is `jmp $ff0000` (visible in the vector dump in part 16). So the MM DSP takes a
+RESET about two billion instructions in and jumps to a bootstrap ROM this
+emulator does not map there — it maps the loader at 0x14ff00 instead. That is
+the next MM question, and it is now a clean halt with full register state
+instead of a dead host process.
+
+### Verified after the fix
+
+```
+dsp56kTestRunner:                 exit 0
+MD interpreter:                   3380 bytes  (baseline unchanged)
+MD JIT:                           26894 / 22090  PASSES
+MM interpreter:                   halts with a diagnosis, no SIGSEGV
+```
+
+### Why this matters for iOS specifically
+
+On the device an out-of-bounds call through a garbage function pointer is an
+immediate process kill with no diagnosis, and the interpreter is the ONLY engine
+available there. Every wild-PC bug in any firmware now reports its PC and halts
+that DSP instead of taking the app down. This does not make MD boot, but it
+removes a whole class of unrecoverable iOS failures and makes the remaining ones
+diagnosable on-device.
