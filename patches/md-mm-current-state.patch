@@ -1,4 +1,4 @@
-### Snapshot of md-interp-work/mdmm, Wed Sep 16 20:38:25 CEST 2026
+### Snapshot of md-interp-work/mdmm, Wed Sep 16 20:46:18 CEST 2026
 
 diff --git a/base.cmake b/base.cmake
 index 0a880954..23428f2d 100644
@@ -618,7 +618,7 @@ index c46ec22b..0c53a1d2 100644
  
  		uint64_t m_mmHostTxCycle = 0;
 diff --git a/source/elektron/md/mdLib/mdhardware.cpp b/source/elektron/md/mdLib/mdhardware.cpp
-index c19c7790..4849b343 100644
+index c19c7790..4667aa89 100644
 --- a/source/elektron/md/mdLib/mdhardware.cpp
 +++ b/source/elektron/md/mdLib/mdhardware.cpp
 @@ -7,6 +7,7 @@
@@ -826,7 +826,37 @@ index c19c7790..4849b343 100644
  		const double ucPerFrame   = schedUcCyclesPerFrame();
  		const double quantumFrames= schedQuantumFrames(m_model);
  		const uint64_t clampCycles= schedClampCycles(m_model);
-@@ -1312,6 +1425,27 @@ namespace md
+@@ -1280,6 +1393,29 @@ namespace md
+ 		double dsp1Pos = m_schedDspOriginLatched[0] ? schedDspFramePos(0) : target;
+ 		double dsp2Pos = m_schedDspOriginLatched[1] ? schedDspFramePos(1) : target;
+ 
++		// MD_DSP_LEAD=<factor>: let the DSPs execute <factor> times as many cycles
++		// per unit of machine time. The boot rendezvous (ColdFire spinning at
++		// ucPC 0x734 for a mixer word, mixer waiting on a host command the UC has
++		// not sent) closes on the JIT and not on the interpreter, and no single
++		// mechanism has been found wrong; the difference is how much DSP work
++		// happens per MCU cycle. Dividing the DSP's frame position makes it take
++		// that many more cycles to reach the same position, so it is scheduled
++		// more. Diagnostic: this changes the emulated time base.
++		static const double s_dspLead = []() -> double {
++			if(const char* e = std::getenv("MD_DSP_LEAD"))
++			{
++				const auto v = std::atof(e);
++				if(v > 0.0)
++					return v;
++			}
++			return 1.0;
++		}();
++		if(s_dspLead != 1.0)
++		{
++			if(m_schedDspOriginLatched[0]) dsp1Pos /= s_dspLead;
++			if(m_schedDspOriginLatched[1]) dsp2Pos /= s_dspLead;
++		}
++
+ 		// MM host traffic is a flow-controlled lossless stream. Park a backlogged
+ 		// DSP slice until the UC drains below
+ 		// the threshold; a release clamp bounds the stall so a non-draining UC phase cannot
+@@ -1312,6 +1448,27 @@ namespace md
  		if(dsp1Pos < minPos) { minPos = dsp1Pos; who = 1; }
  		if(dsp2Pos < minPos) { minPos = dsp2Pos; who = 2; }
  
@@ -854,7 +884,7 @@ index c19c7790..4849b343 100644
  		if(minPos >= target)
  			return false;							// everything has reached the shared clock
  
-@@ -1426,7 +1560,14 @@ namespace md
+@@ -1426,7 +1583,14 @@ namespace md
  			score.maximumRequestedCycles = std::max(
  				score.maximumRequestedCycles, diagnosticRequested);
  #endif
@@ -870,7 +900,7 @@ index c19c7790..4849b343 100644
  				d.dsp().execUntilCycles(stopCyc);
  			else
  			{
-@@ -1450,8 +1591,6 @@ namespace md
+@@ -1450,8 +1614,6 @@ namespace md
  				schedDrainCodecOutput();			// keep the mixer ESSI1 output ring shallow
  		}
  
@@ -879,7 +909,7 @@ index c19c7790..4849b343 100644
  		return true;
  	}
  
-@@ -1468,6 +1607,35 @@ namespace md
+@@ -1468,6 +1630,35 @@ namespace md
  			m_schedDspOriginUcCycles[index], _dspCycle - m_schedDspOriginCycles[index]);
  	}
  
@@ -915,7 +945,7 @@ index c19c7790..4849b343 100644
  	void Hardware::schedCatchUpDsp(const uint32_t _dspIndex)
  	{
  		// Run the target DSP inline up to the UC's current machine time
-@@ -1476,6 +1644,14 @@ namespace md
+@@ -1476,6 +1667,14 @@ namespace md
  		// of spinning while the DSP is frozen for the UC's whole background quantum. Bounded by the
  		// catch-up clamp; monotone (never runs the DSP backwards or past the UC).
  		const uint32_t i = _dspIndex & 1;
@@ -930,7 +960,7 @@ index c19c7790..4849b343 100644
  #if MD_TRANSPORT_DIAGNOSTICS
  		auto& score = m_transportScorecard.coldFireToDsp[i];
  		++score.calls;
-@@ -1509,6 +1685,8 @@ namespace md
+@@ -1509,6 +1708,8 @@ namespace md
  		// MM flow control: a host-TX-backlogged DSP does not advance in catch-up either - the
  		// catch-up loops are how a DSP outruns the UC by thousands of words in the first place
  		// (see the schedStep backpressure comment). MD path untouched.
@@ -939,7 +969,7 @@ index c19c7790..4849b343 100644
  		const bool s_mmBp = isMonomachine();
  		while(d.dsp().getCycles() < targetCyc && d.dsp().getCycles() < clampStop
  			&& (!s_mmBp
-@@ -1554,6 +1732,12 @@ namespace md
+@@ -1554,6 +1755,12 @@ namespace md
  			return;
  		}
  		auto& d = (c == 0) ? m_dspMixer : m_dspProducer;
@@ -952,7 +982,7 @@ index c19c7790..4849b343 100644
  		const double producerPos = schedDspFramePos(p);
  		const double deltaFrames = producerPos - m_schedDspOriginFrame[c];
  		if(deltaFrames <= 0.0)
-@@ -1579,10 +1763,21 @@ namespace md
+@@ -1579,10 +1786,21 @@ namespace md
  			score.maximumRequestedCycles = std::max(score.maximumRequestedCycles, requested););
  		m_schedInLinkDelivery = true;
  		const bool bpGate = isMonomachine();
@@ -978,7 +1008,7 @@ index c19c7790..4849b343 100644
  		m_schedInLinkDelivery = false;
  		MD_TRANSPORT_RECORD(const auto executed = d.dsp().getCycles() - startCyc;
  			score.executedCycles += executed;
-@@ -1598,6 +1793,11 @@ namespace md
+@@ -1598,6 +1816,11 @@ namespace md
  				++score.unexpectedShort;);
  	}
  

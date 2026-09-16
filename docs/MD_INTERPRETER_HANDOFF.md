@@ -1625,3 +1625,48 @@ If that holds, no single mechanism in this emulator is wrong, and the fix is a
 decision about the timing model rather than a defect repair — which is why every
 individual mechanism measured in this session has come back either correct or
 correctable without changing the outcome.
+
+## Session 3, part 20 — the timing-model knob, and why this is not tunable
+
+Implemented `MD_DSP_LEAD=<factor>` (mdhardware.cpp, schedStep): divide each
+DSP's frame position so it must execute `factor` times as many cycles to reach
+the same position, i.e. let the DSPs run that much faster relative to the MCU.
+This is the direct test of "the JIT wins the rendezvous on speed".
+
+```
+lead    panel   mixerPC   mixVec12
+1.0      3380     9da        474
+1.5        -        -        HANGS
+2.0      3160     247         20     <- mixer ALIVE, out of the error loop
+JIT      4204     179     15,204
+```
+
+At 2.0 the mixer never reaches the error loop at all, and host commands
+nonetheless fall from 474 to 20. More DSP progress, fewer commands. At 1.5 the
+machine deadlocks outright.
+
+That is non-monotonic in both directions, and it is the same pattern as every
+other knob tried in this session:
+
+```
+MD_HDI08_SLACK   1024:461  2048:474  3072+:HANG  off:41
+MD_MAX_INSTR_PER_BLOCK=4 (upload matches the JIT exactly):        41
+MD_DRAIN_MINSTEP (per-word cost matches the JIT):                 45
+MD_DSP_LEAD      1.0:474   1.5:HANG  2.0:20
+```
+
+Every setting that makes the interpreter resemble the JIT on one measured axis
+makes the outcome worse, and several deadlock. A system whose response to a
+monotone parameter is non-monotone and discontinuous is not mistuned; the
+knobs are interacting with a fragile mutual dependency rather than driving it.
+
+**Conclusion: this cannot be fixed by tuning, and should not be attempted
+again.** The rendezvous itself has to be made robust — so that the boot does
+not depend on the two sides happening to meet within a window — or the
+dependency has to be broken. That is a design change to mdLib's transport, not
+a parameter choice, and it needs its own validation against the MM path and the
+other synths sharing this code.
+
+`MD_DSP_LEAD` is left in the tree, default 1.0, as the cheapest way for a
+future session to re-test any hypothesis about relative speed without rebuilding
+the argument from scratch.
