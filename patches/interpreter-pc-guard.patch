@@ -1,0 +1,50 @@
+Interpreter: guard the program counter in execOp
+
+DSP::execOp indexes m_opcodeCache with the program counter and calls the
+function pointer it finds there. That vector is sized to mem.sizeP(), so a PC
+outside valid P memory is an out-of-bounds read of a function pointer, followed
+by a call through it: a host-process SIGSEGV with no diagnosis.
+
+The JIT path has guarded exactly this for a long time (g_jitPcGuard ->
+onInvalidPC, dsp.h). The interpreter had no equivalent, which is why the same
+firmware kills the process on one engine and survives on the other.
+
+This adds the matching check. One compare on a hot path, branch never taken in
+normal operation, reusing the JIT's existing onInvalidPC() which grows the
+dispatch table when the PC is merely un-grown and otherwise reports full
+register state and halts that DSP.
+
+It matters most on iOS, where the interpreter is the only engine available (the
+kernel will not map an executable page for a non-entitled process, so a JIT
+build fails at runtime) and a call through a garbage pointer is an immediate
+app kill with nothing to diagnose. Every wild-PC bug in any firmware now names
+its PC and halts one DSP instead of taking the process down.
+
+Found via mmBootFirmwareTest under DSP56K_FORCE_INTERPRETER=1, which crashed
+inside execOp; with the guard it halts cleanly reporting
+"INVALID PC ff0000 (valid P memory is 0 - 7fffff)".
+
+Verified: dsp56kTestRunner exit 0; MD JIT readiness unchanged (26894/22090);
+MD interpreter baseline unchanged (3380).
+
+Apply in the dsp56300 submodule.
+
+--- a/source/dsp56kEmu/dsp.cpp
++++ b/source/dsp56kEmu/dsp.cpp
+@@ -536,6 +536,19 @@ namespace dsp56k
+ 		const TWord currentOp = pcCurrentInstruction;
+ 		const auto instructionsBefore = m_instructions;
++
++		// SAFETY NET, interpreter side. The JIT path already traps a PC outside
++		// valid P memory (g_jitPcGuard -> onInvalidPC in dsp.h); the interpreter
++		// had no equivalent and indexed m_opcodeCache out of bounds instead, which
++		// is a wild read and a SIGSEGV with no diagnosis. Observed crashing
++		// mmBootFirmwareTest inside execOp. One compare on a hot path, branch
++		// never taken in normal operation.
++		if(ASMJIT_UNLIKELY(currentOp >= m_opcodeCache.size()))
++		{
++			onInvalidPC(currentOp);
++			return;
++		}
++
+ 		const auto& opCache = m_opcodeCache[currentOp];
