@@ -1,5 +1,27 @@
 # DSP56300 interpreter — findings for upstream / the fork author
 
+> **UPDATE, same day: the Machinedrum now boots under the interpreter.** The
+> boot failure this document describes was a single instruction-level bug, not
+> the timing problem the earlier analysis assumed.
+>
+> `op_Movep_ppea` routed the effective-address side of a `movep` as plain
+> memory; the JIT routes it through `readMemOrPeriph`/`writeMemOrPeriph`, which
+> test `isPeriphAddress()`. So peripheral-to-peripheral `movep` silently wrote
+> into DSP memory under the interpreter only. The mixer's DMA-arming routine
+> writes DDR5 and DCO5 that way, so DMA channel 5 was armed with a destination
+> and counter it never received -- while DCR5, written by immediate `movep`,
+> arrived normally. Hence "arms at the right cycle, at 1/18th the rate".
+>
+> Fix: dsp56300 commit 9cb3112. Stock path, no flags: fresh bytes 3,380 ->
+> 26,884 against the JIT's 26,894, with tiles and lit matching the JIT exactly.
+> Runs on an iPad Pro M5 at 0.576x realtime headless (47.2M instr/s, 1.67x the
+> M1 -- normal generational scaling).
+>
+> Sections below are kept as the record. Part 1.1 (the `DSP::exec()` granularity
+> dead code) and Part 1.3 (`onInvalidPC` halting by sleeping) are still valid
+> engine issues worth upstreaming. Part 2's throughput ratio still holds. Part 3
+> describes a boot failure that no longer exists.
+
 Measurements from an attempt to run the Elektron Machinedrum and Monomachine
 under the DSP56300 **interpreter** (no JIT), for an iPad port — iOS will not map
 an executable page for a non-entitled process, so the interpreter is the only
