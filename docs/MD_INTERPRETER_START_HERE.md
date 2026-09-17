@@ -263,6 +263,104 @@ identical instrumentation is strong evidence it is not ours, but it is not
 proof. Note `git stash -u` REMOVES the untracked `mdBench.cpp`/`iosmain.mm` that
 CMake references and breaks the build — recover with `git stash pop`.
 
+## CORRECTIONS from the session of 2026-09-17 (read before re-running anything)
+
+All three baselines reproduce exactly (unit suite exit 0; JIT 26894/22090;
+interpreter 3380 with the mixer at P:0x9da). Nothing below contradicts that.
+
+**1. Score candidates on boot progress, not on the stream index.** The
+"first mismatch index" is over-sensitive: at 2148 the interpreter does the SAME
+thing one poll later, which is a phase slip, not a content divergence. Collapse
+runs of identical (type, dsp, value) events and diff the transition sequence
+instead. Better still, use `mixVec12` at a fixed tick, which tracks boot:
+
+```
+configuration                                    @tick25   @tick180  outcome
+JIT                                                 1762     139410  boots
+interpreter baseline                                   0        474  9da
+"MD_DRAIN_MINSTEP=1 MD_HDI08_SLACK=1000000000"        20         20  9da   <- the old "best"
+"MD_DRAIN_MINSTEP=1 MD_BACKLOG_LATE=1"                20         20  9da
+"MD_DRAIN_MINSTEP=1"                                 665          -  wedges @25
+```
+
+The configuration this file recorded as best (stream 2149) is near-WORST on boot
+progress, because `MD_HDI08_SLACK=1000000000` drives the drain to the full 100k
+inline clamp and so REINSTATES exactly the overshoot `MD_DRAIN_MINSTEP` removes.
+That is a likely source of the "non-monotone and discontinuous" tuning response:
+the configurations were ranked on a metric that does not track boot.
+
+**2. The root divergence is the bootstrap loader's poll, and it is measured.**
+The engines are bit-identical for 10 scheduler ticks. At tick 11 the producer's
+loader diverges. Aggregate DSP:UC cycle ratios are identical to 5 decimals
+(2.5399), so it is not throughput. The inline HDI08 drain costs, per host word:
+JIT prodMax=19, interpreter prodMax=164.
+
+`MD_STUCK_THRESHOLD=60` shows one drain iteration, one exec() call, one PC
+(14ff1b), 145 cycles. The loader's poll `brclr #0,x:<<$ffffc3,func_14ff1b` sits
+inside a `dor` hardware loop, and `DSP::exec()`'s hardware-loop path runs up to
+`maxInstructionsPerBlock` (32) instructions per call while the drain re-tests
+its exit condition only BETWEEN calls. The dead-code note in this file was
+right, and its consequence is worse than stated: granularity is 1 instruction
+OUTSIDE a hardware loop and 32 INSIDE one -- backwards exactly where it matters.
+
+**3. It is pure post-condition overshoot (new instrument, `MD_WORDLAT=1`).**
+Splits each word into pre (publication -> the DSP's read of HRX) and post (that
+read -> the drain returning). Producer at tick 20, identical 250,125 words:
+
+```
+                 JIT          interpreter
+preTotal     2,225,029          1,251,191     <- interpreter is FASTER to hand over
+postTotal        2,690         34,941,417     <- 12,990x
+postMax             10                140
+outside         97,567                418
+```
+
+~17% of all producer machine time is spent executing past a condition that had
+already become true.
+
+**4. Eliminated this session.** The TXDE/TRDY derivation is CORRECT (depth 0 ->
+TXDE|TRDY, 1 -> TXDE, 2 -> neither). `MD_LIVE_CATCHUP=1` (new: live UC cycles in
+`schedCatchUpDsp`/`schedDspClockDeadline`, which `MD_LIVE_UCCYCLE` never
+touched) adds nothing over MINSTEP alone and costs ~20x throughput. Holding
+words rather than destroying them (`MD_BACKLOG_LATE=1`) removes the loss
+(mixLost 8830 -> 1) and the wedge, but drops mixVec12 to 20 -- back-pressure is
+not the missing piece.
+
+**5. `booted()` is vacuous as a boot-phase guard.** `DspBoot` emulates only the
+on-chip bootstrap ROM: one block (measured: address 0x000100, length 0xb7), then
+it returns true and `writeWordToDsp` takes over. The BULK of the firmware is
+uploaded afterwards by loader code running on the DSP core. So the
+"only model HREQ for the post-boot transfers" guard is true throughout the phase
+it means to exempt, which is why `MD_HOST_BACKLOG` starves the loader
+(prodBacklogMax 24,063, PC never leaves 14ff1b).
+
+**6. The open blocker.** `MD_DRAIN_MINSTEP=1` alone is the best result recorded
+and wedges at tick 25. First overflowing transaction there, flagless:
+
+```
+interp  depth=2 ucPC=100077c lastIsr=07 dspPC=000242 dspCyc=262964019
+JIT     no overflow at all in 3 seconds
+```
+
+`isrReadsSinceLastWrite=0` in EVERY configuration including the JIT: the
+ColdFire reads status once and then burst-writes from the two-instruction loop
+at 0x100077a/c at ~2-5 UC cycles per word without re-checking. Across those
+writes the DSP is handed ~2070 cycles per word and still does not consume,
+because it is at 0x242 in firmware with the host-receive DMA unarmed -- not
+polling at all. So the next question is not capacity or status, it is why the
+mixer is in the wrong state to service the port.
+
+### New env gates (all default OFF, all verified inert when off)
+
+```
+MD_WORDLAT        per-word pre/post split described above. The decisive instrument.
+MD_LIVE_CATCHUP   live UC cycles for the two DSP catch-up deadlines.
+MD_BACKLOG_LATE   decide to hold a word AFTER the drain has had its chance,
+                  not before; needs no boot-phase predicate. Works standalone.
+MD_LOADER_EXEMPT  PC-region boot-phase predicate. Correct for the first loader
+                  stage only; kept as a measurement, not a fix.
+```
+
 ## Hygiene that matters here
 
 - Idle machine only; one test at a time; no concurrent builds.
