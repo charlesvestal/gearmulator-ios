@@ -10,7 +10,9 @@ Make the **Machinedrum boot and produce audio under the DSP56300 interpreter**,
 to prove iPad viability. iOS cannot JIT at all (the kernel will not map an
 executable page for a non-entitled process, so a JIT build fails at runtime),
 so the interpreter is the ONLY engine available on device. This is not a
-regression to find: **MD/MM have never run interpreted, by anyone.** Upstream
+regression to find: **MD has never booted interpreted, by anyone.** (MM does
+boot and make audio interpreted — see the corrected section at the end. Its
+constraint is throughput, not boot.) Upstream
 has zero issues mentioning the interpreter, and this fork's tree is already at
 upstream HEAD. It is unimplemented behaviour, not a broken feature.
 
@@ -232,14 +234,23 @@ instruction outside hardware loops, up to 32 inside. Several "granularity ruled
 out" results in the archive were measured on a binary that did not do what its
 comments say.
 
-## Also true
+## Also true — CORRECTED
 
-**Monomachine does not run under the interpreter either.** `mmBootFirmwareTest`
-passes under the JIT and, before the PC guard, SIGSEGV'd under the interpreter;
-with the guard it halts cleanly reporting `INVALID PC ff0000` — the DSP56303
-on-chip bootstrap ROM, which this emulator does not map there (it places the
-loader at 0x14ff00). That is a separate, fresh, unanalysed bug with a clean
-reproducer, and may well be more tractable than MD:
+**Monomachine DOES boot and make audio under the interpreter.** It was measured
+earlier at 0.737x real time on the bench and 0.463x in-app, cycle-verified, and
+audio was confirmed audible on device. **MM's problem is THROUGHPUT, not boot.**
+An earlier draft of this file claimed MM "does not run interpreted" — that was
+wrong, and the instruction count should have given it away.
+
+What is true is narrower: `mmBootFirmwareTest` (a three-phase test: cold boot,
+edited kit, state-restored boot) halts under the interpreter after
+**1,996,241,008 instructions and 5,048,000 host words** — far beyond any boot —
+reporting `INVALID PC ff0000`. That is the DSP56303 on-chip bootstrap ROM, which
+this emulator does not map there (it places the loader at 0x14ff00), i.e. the
+DSP took a reset deep into a long run. Before the PC guard this was a SIGSEGV.
+
+So it is a late-run / state-restore issue in a long test, NOT a boot failure,
+and it does not contradict MM working on device. Reproducer:
 
 ```sh
 GEARMULATOR_MM_FIRMWARE_BIN=../artifacts/mdrom/elektron_sfx6-60_os1.32b.bin \
