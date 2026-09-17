@@ -15,6 +15,54 @@ earlier in this work turned out to be overstated and are corrected in Part 4.
 
 ---
 
+## Part 0 — READ FIRST: everything below was measured on Release builds
+
+All of this work — this session and the three before it — was done with
+`CMAKE_BUILD_TYPE=Release`, i.e. `-DNDEBUG`, which turns **all 323 `assert()`s
+across 55 files in `dsp56kEmu` into no-ops.** The fork author flagged this after
+hitting the same trap ("fought glitches forever ... turns out I was using release
+build configurations the whole time"). It is the single most useful piece of
+process advice in this whole effort.
+
+Re-running under `-DCMAKE_BUILD_TYPE=Debug` immediately produced something four
+sessions of Release measurement could not see:
+
+```
+MD, stock path, Debug interpreter, fails at tick 14 (the boot divergence window):
+
+  Assertion failed: (sr_test(SR_S0) == 0 && sr_test(SR_S1) == 0),
+    function alu_mac, file dsp_ops_alu.inl, line 490.
+```
+
+The MD firmware sets **scaling mode** (SR bits S0/S1) and executes a MAC. The
+interpreter's `alu_mpy` (line 448) and `alu_mac` (line 490) both assert that
+scaling mode is OFF — and two further asserts of the same condition are
+**commented out** at lines 370 and 410, which suggests a history of hitting these
+and silencing them. The engine's own unit suite (`dsp56kTestRunner`) passes clean
+under Debug, so this combination is **not covered by any test**.
+
+**Not yet established: whether this is a real defect or an over-strict leftover
+assert.** The interpreter does implement scaling in the two places that matter
+architecturally — `scale()` on accumulator transfer (`dsp.h:983`) and the rounder
+position in `alu_rnd` (`dsp_ops_alu.inl:533`) — which mirrors what the JIT does in
+`transferSaturation24/48` via `JitDspMode`. So MAC itself may legitimately not
+need scaling handling. This needs a direct JIT-vs-interpreter arithmetic
+comparison with S0/S1 set. We did not get that far.
+
+Also under Debug: the MM halt reproduces at the **same** point, but names a
+more precise location than the Release build's `INVALID PC ff0000` —
+`Assertion failed: (0 && "invalid memory address"), function getOpcode,
+file memory.cpp, line 232`.
+
+**What this means for everything below.** The throughput numbers in Part 2 are a
+Release-vs-Release comparison and stand. The *correctness* conclusions in Parts
+1 and 3 were all drawn from assert-blind binaries and should be re-derived under
+Debug before anyone builds on them. We are flagging this rather than quietly
+re-writing, because the measurements are real and reproducible — it is the
+confidence, not the content, that the Release build undermines.
+
+---
+
 ## Part 1 — Engine issues, independent of the interpreter project
 
 ### 1.1 `DSP::exec()` instruction granularity is backwards (dead code)
