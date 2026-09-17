@@ -1,5 +1,95 @@
 # MD/MM interpreter — START HERE
 
+> ## SESSION 2026-09-17b: both remaining bugs reproduced headlessly, same shape
+>
+> Read this box AND the SOLVED box below it. Everything after the SOLVED box
+> still predates the movep fix and is still obsolete.
+>
+> ### The MD trig crash is reproduced, and it is not a mystery crash
+>
+> New test `trigPressFirmwareTest` (mdLibTest, committed) presses every trig key
+> with the machine in its DEFAULT state rather than in RECORD. That is the whole
+> difference from `encoderPressFirmwareTest`: in record a trig writes a step, out
+> of record it PLAYS the voice. Out of record, Trigger1 sounds (peak 0.204) and
+> then, a few emulated seconds later:
+>
+> ```
+> Release interpreter:  SIGSEGV in DSP::op_ResolveCache
+> Debug interpreter:    [DSP] ILLEGAL INSTRUCTION op=007fff at pc=10079a,
+>                       sr=0880d0 sp=3 omr=00498d instructions=2102488972
+> ```
+>
+> Same PC with and without a preceding trig. The crash itself was
+> `op_ResolveCache` asserting on an unknown opcode and then dereferencing the
+> null OpcodeInfo — in Release the assert is a no-op, so the null deref is what
+> runs. Fixed in dsp56300 `5d81aa1`: it now reports opcode, PC, SR/OMR/SP, the
+> system stack and (Debug) a disassembled PC history, then parks the DSP the way
+> `onInvalidPC` does. **That is a safety net, not the root cause.**
+>
+> ### MM's INVALID PC and MD's illegal instruction have the SAME shape
+>
+> Both end with a hardware DO loop finishing, one or two instructions running,
+> and then an `rts` returning somewhere that is not code:
+>
+> ```
+> MM   145aae do #8,$145ab4 ; body 145ab0..145ab3 x8 ; 145ab4 rts
+>      -> pc 000000 -> jmp $ff0000        ss[1] pc=0002a3   sp=1
+> MD   loop 10086b..100872 ; 100873 ; 100874 rts
+>      -> pc 10079a = dc $007fff          ss[3] pc=100794   sp=3
+> ```
+>
+> In both cases LF is still set at the `rts`. The next step is to read the SP
+> column that dsp56300 `8c5ce79` added to the PC history (Debug only, 1024
+> entries deep) and find where the system stack stopped balancing.
+>
+> ### Controls already run
+>
+> * The JIT runs MM through the full 8s boot + 10s render with no halt and
+>   peak 0.4134. **Both bugs are interpreter-only.**
+> * `mdAudioFirmwareTest` PASSES under the Debug interpreter, so MD's audio path
+>   is not broadly broken.
+> * The MM halt is input-independent: it lands in mdBench's BOOT phase, which
+>   sends no notes. So the device's "MM freezes after a trig" is very likely just
+>   this halt arriving ~13s after boot regardless of the trig.
+> * The halt instruction count MOVES with the DO slice size, which
+>   `mddsp.cpp` explicitly says it must not:
+>
+>   ```
+>   MD_MAX_DO_ITERATIONS=1   617,040,269      =2   605,560,613
+>   MD_MAX_DO_ITERATIONS=4   605,667,784      =8   605,595,052
+>   MD_MAX_DO_ITERATIONS=16  605,646,357
+>   ```
+>
+>   It halts under every setting, so the bounded-DO epilogue is not the sole
+>   cause — but emulated behaviour depending on slice size is itself a defect,
+>   and the epilogue is the fork-specific code closest to the failure.
+>   `MD_MAX_DO_ITERATIONS=0` is not a usable control: `do_exec`'s internal loop
+>   never returns to the scheduler and the machine wedges at 0.25s of boot.
+> * `m_doStackLevel` (dsp.h/dsp.cpp) is SET and NEVER READ — a guard that was
+>   removed from the epilogue. Worth understanding before trusting the epilogue.
+>
+> ### Sibling EA-routing audit: done, one real gap found, not yet implicated
+>
+> The interpreter's MMM/RRR `readMem`/`writeMem` and every `_ea` bit-manipulation
+> op DO check `isPeripheralAddress` — no gap there. But these four use plain
+> `memRead`/`memWrite` on an `Rn + displacement` effective address where the JIT
+> routes through `readMemOrPeriph`/`writeMemOrPeriph`:
+>
+> * `move_Rnxxxx` → `op_Movex_Rnxxxx` / `op_Movey_Rnxxxx`  (dsp_ops_move.inl:62)
+> * `op_Movex_Rnxxx` / `op_Movey_Rnxxx`                     (dsp_ops_move.inl:117/132)
+>
+> Same shape as the Movep_ppea bug. NOT yet shown to be exercised: the Debug
+> `MD_XIOWRITE` diagnostic in memory.cpp reports zero memory writes at peripheral
+> addresses across every MD and MM run here, so no WRITE-side gap is being hit.
+> The READ side has no equivalent diagnostic yet — adding one is cheap and is the
+> way to settle whether these four matter.
+>
+> ### Build note
+>
+> `build-dbg2` (arm64-only Debug) configures and builds but aborts at boot in
+> `jitasmjithelpers.cpp handleError` despite `DSP56K_FORCE_INTERPRETER=1`.
+> Unresolved; use `build-dbg-interp`.
+
 > ## STATUS: SOLVED 2026-09-17. The Machinedrum boots under the interpreter.
 >
 > **Everything below this box predates the fix and is kept only as the record of
