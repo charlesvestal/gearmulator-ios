@@ -1,65 +1,94 @@
 # MD/MM interpreter — START HERE
 
-> ## STATUS: STOPPED 2026-09-17. Read this box before picking the work up again.
+> ## STATUS: SOLVED 2026-09-17. The Machinedrum boots under the interpreter.
 >
-> The goal was "make MD boot interpreted, to prove iPad viability". Work was
-> stopped deliberately, not abandoned mid-debug. The reason is not MD boot --
-> real progress was made there -- it is that the SUCCESS CASE was measured and
-> is not good enough.
+> **Everything below this box predates the fix and is kept only as the record of
+> how it was found. Do not act on it.** In particular the collapse chain, the
+> "no individual mechanism is wrong" conclusion, and THE TASK (the rendezvous
+> rewrite) are all obsolete: the cause was a single instruction-level bug, and
+> nothing about it was a timing problem.
 >
-> **The throughput arithmetic, measured on an M1 Mac mini (Macmini9,1):**
+> ### The bug
+>
+> `op_Movep_ppea` (dsp_ops_move.inl) routed the effective-address side of a
+> `movep` as plain memory, while the JIT routes it through
+> `readMemOrPeriph`/`writeMemOrPeriph` (jitops_move.cpp:465, jitops_mem.cpp:35/77)
+> which test `isPeriphAddress()`. So **peripheral-to-peripheral `movep` silently
+> wrote into DSP memory under the interpreter and worked under the JIT.**
+>
+> The mixer's DMA-arming routine is exactly that shape:
 >
 > ```
-> mdBench MM, 10s audio          JIT realtime = 1.172x
-> sustained instr/s              JIT 59.3M    interpreter 28.2M   (48% of JIT)
-> => interpreter                 ~0.56x realtime on M1
-> => scaled to M4 iPad (~1.6x M1 single-core, this is single-threaded)
->                                ~0.9x realtime   <- below realtime, no margin
+> 9aa  movep x:<<$ffffc6,x:<<$ffffda   ; HRX -> DDR5 (destination)  LOST
+> 9ac  movep #>$e9ac4,x:<<$ffffd8      ; imm -> DCR5 (config)       ok
+> 9b1  movep x:<<$ffffc6,x:<<$ffffd9   ; HRX -> DCO5 (counter)      LOST
+> 9b3  movep #>$8e9ac4,x:<<$ffffd8     ; imm -> DCR5 DE=1, arm      ok
 > ```
 >
-> The JIT itself is only 1.172x on M1 (~1.9x on M4), and that is an unreachable
-> ceiling because iOS will not JIT. For a usable ~1.5x margin the interpreter
-> must go from 48% to 80% of JIT speed -- a 1.7x speedup on a cycle-accurate
-> DSP56300 interpreter that nobody has ever profiled.
+> DMA channel 5 really was armed, at the right cycle -- with a destination and
+> counter it never received. That is why every measurement said "arms correctly
+> but at 1/18th the rate", and why three sessions of timing hypotheses could not
+> find it.
 >
-> **Three independent blockers, each open-ended:**
-> 1. MD does not boot interpreted (4 sessions).
-> 2. MM halts after ~12 SECONDS of ordinary audio: "INVALID PC ff0000" at
->    605,667,784 instructions in mdBench, not only in mmBootFirmwareTest. The
->    section at the end of this file scopes this to a late state-restore test and
->    concludes "MM's problem is THROUGHPUT, not boot". That is too generous --
->    MM interpreted does not survive twelve seconds of rendering.
-> 3. The throughput ceiling above.
+> Fix: dsp56300 commit 9cb3112. Result, stock path, no flags:
+> fresh bytes 3,380 -> 26,884 (JIT 26,894); tiles and lit match the JIT exactly.
 >
-> This is greenfield, not repair: upstream never supported running MD/MM under
-> the interpreter, so there is no working baseline and no regression. A "pristine
-> upstream" control is NOT meaningful here -- that path never worked.
+> ### How it was found -- the most useful process fact here
 >
-> **What would change the decision.** The JIT is only 2.1x the interpreter, which
-> is unusually narrow (5-20x is typical). That hints the shared peripheral /
-> scheduler code, not instruction dispatch, dominates. If true, the 1.7x is
-> ordinary profiling work that speeds up BOTH engines. One clean profile of a
-> configuration that is actually running would settle it. That profile was
-> attempted and failed -- the DSP had already halted, and 13,716 of 13,727
-> samples were in DSP::onInvalidPC -> sleep_for.
+> All prior work used `CMAKE_BUILD_TYPE=Release`, i.e. `-DNDEBUG`, which makes
+> **all 323 asserts in dsp56kEmu no-ops.** The fork author flagged this after
+> hitting the same trap. One Debug build produced the entire chain in minutes:
+> `alu_mac`'s scaling assert at tick 14 -> silencing it as a diagnostic exposed
+> `assert(_offset < XIO_Reserved_High_First)` in `dspWrite` at tick 25 ->
+> instrumenting that named the exact writes (X:ffffda, X:ffffd9) and PCs.
 >
-> **Worth salvaging regardless of this project:**
-> - The interpreter PC guard (already in tree, not gated). execOp indexed
->   m_opcodeCache with an unchecked PC and CALLED the result; the JIT had guarded
->   this for years. It is what turned the MM failure above into a diagnosable
->   halt with registers instead of a SIGSEGV. Independently shippable.
-> - DSP::exec() granularity: a dead-code guard makes it 1 instruction OUTSIDE a
->   hardware loop and up to 32 INSIDE one -- backwards, and the comment claims
->   the opposite. Upstream engine bug. See the 2026-09-17 corrections below for
->   the measurement (12,990x post-condition overshoot).
-> - DSP::onInvalidPC sleeps 1ms and returns, so a halted DSP makes the whole
->   machine crawl forever instead of failing. Deliberate, and reasonable for
->   interactive debugging, but in a headless bench or a shipped app it is a
->   silent hang rather than a fault. Worth a context flag.
-
-Read this file, not `MD_INTERPRETER_HANDOFF.md`. That one is a 2,100-line
-chronological evidence archive from three sessions; consult it only when you
-need the raw measurement behind a claim here. This file is the briefing.
+> **Always build Debug for correctness work here.** Verified control: Debug and
+> Release produce byte-identical emulated state, so asserts do not perturb the
+> emulation -- Release only blinds the diagnosis.
+>
+> ### On device
+>
+> Runs on an iPad Pro 13-inch (M5), stable. Headless `mdBench`, free-running:
+>
+> ```
+> INTERPRETER MD  audio=5.0s  wall=8.69s  realtime=0.576x  (warmup 11.87s)
+>   mixer 47.2M instr/s   producer 50.3M instr/s
+>
+> for comparison, M1 Mac mini:  interpreter 28.2M instr/s, JIT 59.3M instr/s
+> ```
+>
+> The iPad is 1.67x the M1 -- normal generational scaling, nothing pathological,
+> and the interpreter on iPad is already at 80% of the M1 JIT's throughput.
+> Needs ~1.74x for realtime parity, ~2.6x for comfortable headroom.
+>
+> Note the standalone app reports ~0.195x, but that is the JUCE editor live and
+> the emulation clocked by the audio callback -- a real "is it keeping up"
+> signal, NOT a throughput ceiling. Use the headless bench for throughput.
+> Its log is written to Documents/mdbench.log on device; pull it with
+> `xcrun devicectl device copy from --domain-type appDataContainer`.
+>
+> ### Open
+>
+> - **Pressing a trig crashes MD and freezes MM on device.** MM did neither
+>   before the fix, which is evidence the fix put real peripheral traffic on
+>   paths that were previously silent no-ops. `encoderPressFirmwareTest` (taps
+>   Trigger1) ran minutes under Debug without tripping an assert, so this needs
+>   a reproducer closer to the panel/UART path the device UI uses.
+> - **MM still halts** with `INVALID PC ff0000` at instruction 605,667,784 --
+>   byte-identical before and after the movep fix, so it is a separate bug.
+> - **~1.74x throughput needed.** The JIT is only 2.1x the interpreter, which is
+>   narrow for JIT-vs-interpreter and suggests shared peripheral/scheduler code
+>   dominates rather than instruction dispatch. Profile before optimising.
+>   `traceDivergence()` runs on every interpreted instruction.
+> - **Sibling EA-routing sites**: the JIT uses readMemOrPeriph/writeMemOrPeriph
+>   at jitops_alu.inl:41/43, jitops_mem.inl:56/120, jitops_move.inl:86/93/112/119.
+>   The interpreter's generic MMM/RRR readMem/writeMem DO check
+>   isPeripheralAddress (verified), so Movep_ppea was the only gap of that exact
+>   shape -- but the rest deserve an audit.
+> - **Release-path debris** to remove: a hardcoded `0x101327` write trap on every
+>   DSP write (memory.cpp), an `MD_REP` cycle-range check, and an ungated
+>   `MD_HOSTWORDS` fprintf. Measured at ~500 log lines/sec of emulated time, so
+>   NOT a significant throughput cost -- but it is debris.
 
 ## The job
 
