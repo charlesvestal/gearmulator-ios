@@ -1,4 +1,4 @@
-### Snapshot of md-interp-work/mdmm, Wed Sep 16 22:43:57 CEST 2026
+### Snapshot, Thu Sep 17 05:43:29 CEST 2026
 
 diff --git a/base.cmake b/base.cmake
 index 0a880954..23428f2d 100644
@@ -754,7 +754,7 @@ index c46ec22b..3a0d3e9d 100644
  
  		uint64_t m_mmHostTxCycle = 0;
 diff --git a/source/elektron/md/mdLib/mdhardware.cpp b/source/elektron/md/mdLib/mdhardware.cpp
-index c19c7790..4667aa89 100644
+index c19c7790..77c5104a 100644
 --- a/source/elektron/md/mdLib/mdhardware.cpp
 +++ b/source/elektron/md/mdLib/mdhardware.cpp
 @@ -7,6 +7,7 @@
@@ -1045,7 +1045,7 @@ index c19c7790..4667aa89 100644
  		return true;
  	}
  
-@@ -1468,6 +1630,35 @@ namespace md
+@@ -1468,6 +1630,44 @@ namespace md
  			m_schedDspOriginUcCycles[index], _dspCycle - m_schedDspOriginCycles[index]);
  	}
  
@@ -1058,6 +1058,15 @@ index c19c7790..4667aa89 100644
 +			return 0;
 +		return dspCatchupDeadline<g_ucClockHz, g_dsp1CyclesPerEsaiFrame * g_samplerate>(
 +			m_schedDspOriginCycles[i], m_schedUcCyclesDone - m_schedDspOriginUcCycles[i]);
++	}
++
++	bool Hardware::liveUcCycleEnabled()
++	{
++		static const bool s_enabled = []() {
++			const char* e = std::getenv("MD_LIVE_UCCYCLE");
++			return e && *e && *e != '0';
++		}();
++		return s_enabled;
 +	}
 +
 +	bool Hardware::portCRelaxEnabled()
@@ -1081,7 +1090,7 @@ index c19c7790..4667aa89 100644
  	void Hardware::schedCatchUpDsp(const uint32_t _dspIndex)
  	{
  		// Run the target DSP inline up to the UC's current machine time
-@@ -1476,6 +1667,14 @@ namespace md
+@@ -1476,6 +1676,14 @@ namespace md
  		// of spinning while the DSP is frozen for the UC's whole background quantum. Bounded by the
  		// catch-up clamp; monotone (never runs the DSP backwards or past the UC).
  		const uint32_t i = _dspIndex & 1;
@@ -1096,7 +1105,7 @@ index c19c7790..4667aa89 100644
  #if MD_TRANSPORT_DIAGNOSTICS
  		auto& score = m_transportScorecard.coldFireToDsp[i];
  		++score.calls;
-@@ -1509,6 +1708,8 @@ namespace md
+@@ -1509,6 +1717,8 @@ namespace md
  		// MM flow control: a host-TX-backlogged DSP does not advance in catch-up either - the
  		// catch-up loops are how a DSP outruns the UC by thousands of words in the first place
  		// (see the schedStep backpressure comment). MD path untouched.
@@ -1105,7 +1114,7 @@ index c19c7790..4667aa89 100644
  		const bool s_mmBp = isMonomachine();
  		while(d.dsp().getCycles() < targetCyc && d.dsp().getCycles() < clampStop
  			&& (!s_mmBp
-@@ -1554,6 +1755,12 @@ namespace md
+@@ -1554,6 +1764,12 @@ namespace md
  			return;
  		}
  		auto& d = (c == 0) ? m_dspMixer : m_dspProducer;
@@ -1118,7 +1127,7 @@ index c19c7790..4667aa89 100644
  		const double producerPos = schedDspFramePos(p);
  		const double deltaFrames = producerPos - m_schedDspOriginFrame[c];
  		if(deltaFrames <= 0.0)
-@@ -1579,10 +1786,21 @@ namespace md
+@@ -1579,10 +1795,21 @@ namespace md
  			score.maximumRequestedCycles = std::max(score.maximumRequestedCycles, requested););
  		m_schedInLinkDelivery = true;
  		const bool bpGate = isMonomachine();
@@ -1144,7 +1153,7 @@ index c19c7790..4667aa89 100644
  		m_schedInLinkDelivery = false;
  		MD_TRANSPORT_RECORD(const auto executed = d.dsp().getCycles() - startCyc;
  			score.executedCycles += executed;
-@@ -1598,6 +1816,11 @@ namespace md
+@@ -1598,6 +1825,11 @@ namespace md
  				++score.unexpectedShort;);
  	}
  
@@ -1157,7 +1166,7 @@ index c19c7790..4667aa89 100644
  	{
  		m_schedFramesTotal += static_cast<double>(_machineFrames);
 diff --git a/source/elektron/md/mdLib/mdhardware.h b/source/elektron/md/mdLib/mdhardware.h
-index a513f77b..7d891a38 100644
+index a513f77b..2009c8fd 100644
 --- a/source/elektron/md/mdLib/mdhardware.h
 +++ b/source/elektron/md/mdLib/mdhardware.h
 @@ -1,11 +1,14 @@
@@ -1175,7 +1184,27 @@ index a513f77b..7d891a38 100644
  #include <vector>
  
  #include "mddsp.h"
-@@ -189,6 +192,15 @@ namespace md
+@@ -185,10 +188,34 @@ namespace md
+ 		void schedCatchUpDsp(uint32_t _dspIndex);
+ 		void notifyHostPumpStateChanged();
+ 		uint64_t hostRxReadyCycle(uint32_t _dspIndex, uint64_t _dspCycle) const;
+-		uint64_t hostCurrentCycle() const { return m_schedUcCyclesDone; }
++		// m_schedUcCyclesDone only advances at QUANTUM boundaries (processUC adds to
++		// it after m_uc.exec() returns), so while the firmware sits in its host-port
++		// poll -- inside a quantum -- host time looks frozen and any deadline keyed
++		// to it can never be reached. The UC's own counter advances per instruction.
++		// MD_LIVE_UCCYCLE=1 uses it, which is what lets a timed host-RX handover
++		// actually come due while the UC is waiting for it.
++		static bool liveUcCycleEnabled();
++		uint64_t hostCurrentCycle() const
++		{
++			if(liveUcCycleEnabled())
++			{
++				const auto live = m_uc.getCycles();
++				return live > m_schedUcCyclesDone ? live : m_schedUcCyclesDone;
++			}
++			return m_schedUcCyclesDone;
++		}
  		// Diagnostic snapshot. The caller must serialize with the machine thread,
  		// as Device does for its other control-plane observations.
  		TransportScorecard getTransportScorecard() noexcept;
@@ -1191,7 +1220,7 @@ index a513f77b..7d891a38 100644
  		void recordInlineHdi08Run(uint32_t _dspIndex, uint64_t _startCycle,
  			uint64_t _clampCycle, bool _workComplete) noexcept;
  		void recordMdLinkPurge(size_t _purgedFrames) noexcept;
-@@ -325,8 +337,26 @@ namespace md
+@@ -325,8 +352,26 @@ namespace md
  		// MM stall-purge decision, so it must never be shared by concurrently
  		// running Hardware instances (as it was when this lived as a static local).
  		std::array<uint64_t, 2> m_linkLastShallow{};
@@ -1218,7 +1247,7 @@ index a513f77b..7d891a38 100644
  #endif
  
  		// Codec frames produced by the mixer.
-@@ -374,6 +404,23 @@ namespace md
+@@ -374,6 +419,23 @@ namespace md
  		dsp56k::TWord m_mdProducerPortCPendingLevel = 0;
  		uint64_t m_mdLinkFlushEpoch = 0;
  		uint64_t m_mdProducerPortCPendingEpoch = 0;
@@ -1978,7 +2007,7 @@ index 6cbf7f7..4f16590 100644
  		uint32_t exec() noexcept;
  		void setActiveChannel(TWord _channel);
 diff --git a/source/dsp56kEmu/dsp.cpp b/source/dsp56kEmu/dsp.cpp
-index 612813b..fdd2b01 100644
+index 612813b..3cc287a 100644
 --- a/source/dsp56kEmu/dsp.cpp
 +++ b/source/dsp56kEmu/dsp.cpp
 @@ -1,6 +1,9 @@
@@ -1991,7 +2020,7 @@ index 612813b..fdd2b01 100644
  
  #include <atomic>
  #include <chrono>
-@@ -83,6 +86,145 @@ namespace dsp56k
+@@ -83,6 +86,150 @@ namespace dsp56k
  	// _____________________________________________________________________________
  	// DSP
  	//
@@ -2069,6 +2098,11 @@ index 612813b..fdd2b01 100644
 +		return 1;
 +	}();
 +
++	bool g_irqBlockPhase = []() {
++		const char* e = std::getenv("MD_IRQ_BLOCK_PHASE");
++		return e && *e && *e != '0';
++	}();
++
 +	void DSP::initDivergenceTrace()
 +	{
 +		static std::atomic<int> s_next{0};
@@ -2137,7 +2171,7 @@ index 612813b..fdd2b01 100644
  	DSP::DSP(Memory& _memory, IPeripherals* _pX, IPeripherals* _pY)
  		: mem(_memory)
  		, perif({_pX, _pY})
-@@ -94,6 +236,8 @@ namespace dsp56k
+@@ -94,6 +241,8 @@ namespace dsp56k
  	{
  		assert(_pX != _pY && "cannot use the same peripherals twice");
  
@@ -2146,7 +2180,7 @@ index 612813b..fdd2b01 100644
  		mem.setDSP(this);
  
  		m_disasm.addSymbols(mem);
-@@ -404,16 +548,37 @@ namespace dsp56k
+@@ -404,16 +553,37 @@ namespace dsp56k
  		m_currentOpLen = 1;
  
  		const TWord currentOp = pcCurrentInstruction;
@@ -2186,7 +2220,7 @@ index 612813b..fdd2b01 100644
  
  			if(g_traceSupported && pcCurrentInstruction == currentOp)
  				traceOp();
-@@ -580,6 +745,9 @@ namespace dsp56k
+@@ -580,6 +750,9 @@ namespace dsp56k
  		
  		sr_set( SR_LF );
  
@@ -2196,7 +2230,7 @@ index 612813b..fdd2b01 100644
  		if constexpr(!g_useJIT)
  			m_cycles += getOpcodeCycles(pcCurrentInstruction);
  
-@@ -587,6 +755,19 @@ namespace dsp56k
+@@ -587,6 +760,19 @@ namespace dsp56k
  
  		traceOp();
  
@@ -2216,7 +2250,7 @@ index 612813b..fdd2b01 100644
  		// __________________
  		//
  
-@@ -638,6 +819,14 @@ namespace dsp56k
+@@ -638,6 +824,14 @@ namespace dsp56k
  
  	bool DSP::rep_exec(const TWord _loopCount)
  	{
@@ -2231,7 +2265,7 @@ index 612813b..fdd2b01 100644
  		const auto lcBackup = reg.lc;
  		reg.lc.var = _loopCount;
  
-@@ -1340,6 +1529,16 @@ namespace dsp56k
+@@ -1340,6 +1534,16 @@ namespace dsp56k
  
  	bool DSP::injectInterrupt(uint32_t _interruptVectorAddress)
  	{
@@ -2249,7 +2283,7 @@ index 612813b..fdd2b01 100644
  
  		if(m_interruptFunc == m_execPeripheralsFunc)
 diff --git a/source/dsp56kEmu/dsp.h b/source/dsp56kEmu/dsp.h
-index 7fa8678..6c380ad 100644
+index 7fa8678..f5d3371 100644
 --- a/source/dsp56kEmu/dsp.h
 +++ b/source/dsp56kEmu/dsp.h
 @@ -1,6 +1,7 @@
@@ -2260,15 +2294,16 @@ index 7fa8678..6c380ad 100644
  
  #include "disasm.h"
  #include "dspconfig.h"
-@@ -21,6 +22,7 @@
+@@ -21,6 +22,8 @@
  
  namespace dsp56k
  {
 +	extern uint32_t g_periphBatch;	// DIAGNOSTIC: see execPeriph()
++	extern bool g_irqBlockPhase;	// DIAGNOSTIC: see execInterpreter()
  	class Memory;
  	class InterpreterUnitTests;
  	class JitUnittests;
-@@ -92,6 +94,29 @@ namespace dsp56k
+@@ -92,6 +95,30 @@ namespace dsp56k
  		std::array<IPeripherals* const, 2>	perif;
  		
  		TWord							pcCurrentInstruction = 0;
@@ -2289,6 +2324,7 @@ index 7fa8678..6c380ad 100644
 +		TWord							m_traceTriggerPc = 0xffffffff;
 +		bool							m_traceArmed = false;
 +		uint64_t*						m_pcHist = nullptr;	// DIAGNOSTIC: DSP_PC_HIST, see dsp.cpp
++		bool							m_atBlockStart = true;	// DIAGNOSTIC: see execInterpreter()
 +	public:
 +		uint64_t						m_injectCount = 0;	// DIAGNOSTIC
 +		size_t							m_pendingIrqMax = 0;	// DIAGNOSTIC
@@ -2298,7 +2334,7 @@ index 7fa8678..6c380ad 100644
  		TWord							m_opWordB = 0;
  		uint32_t						m_currentOpLen = 0;
  
-@@ -192,13 +217,100 @@ namespace dsp56k
+@@ -192,13 +219,100 @@ namespace dsp56k
  
  		TReg24	getPC							() const									{ return reg.pc; }
  
@@ -2329,13 +2365,13 @@ index 7fa8678..6c380ad 100644
 +		void execBasicBlockStep() noexcept
 +		{
 +			if(g_useJIT)
- 			{
++			{
 +				execJit();
 +				return;
 +			}
 +			constexpr uint32_t maxBlock = 64;	// safety bound, never hit in a real block
 +			for(uint32_t n = 0; n < maxBlock; ++n)
-+			{
+ 			{
 +				const TWord pc = reg.pc.toWord();
  				execInterpreter();
 +				// Control flow left the straight line (branch, jump, loop-back,
@@ -2400,7 +2436,7 @@ index 7fa8678..6c380ad 100644
  			}
  		}
  
-@@ -267,6 +379,8 @@ namespace dsp56k
+@@ -267,6 +381,8 @@ namespace dsp56k
  				m_interruptFunc(this);
  
  			const auto pc = getPC().toWord();
@@ -2409,13 +2445,38 @@ index 7fa8678..6c380ad 100644
  			LOGJITPC(pc);
  
  			// SAFETY NET: the JIT dispatch table only spans valid P memory. A PC outside of it (a jump/jsr to a
-@@ -305,11 +419,48 @@ namespace dsp56k
+@@ -294,7 +410,14 @@ namespace dsp56k
+ 					clearOpcodeCache();
+ 			}
+ 
+-			m_interruptFunc(this);
++			// MD_IRQ_BLOCK_PHASE=1: dispatch interrupts and peripherals only at
++			// control-flow boundaries, which is where the JIT can take them (once
++			// per block entry). The interpreter normally dispatches before EVERY
++			// instruction, so it can vector into an ISR in the middle of what would
++			// be a JIT block. That phase difference survives matched step
++			// granularity and is a candidate for the residual instruction-count gap.
++			if(!g_irqBlockPhase || m_atBlockStart)
++				m_interruptFunc(this);
+ 
+ #if DSP56300_DEBUGGER
+ 			if(m_debugger)
+@@ -302,14 +425,57 @@ namespace dsp56k
+ #endif
+ 
+ 			pcCurrentInstruction = reg.pc.toWord();
++			const TWord pcBeforeOp = pcCurrentInstruction;
  
  			const auto op = fetchPC();
  
 +			traceDivergence();
 +
  			execOp(op);
++
++			// The next instruction begins a block only if control flow just left
++			// the straight line.
++			if(g_irqBlockPhase)
++				m_atBlockStart = (reg.pc.toWord() != pcBeforeOp + m_currentOpLen);
 +
 +			// Hosts that request bounded DO loops need each interpreter call to
 +			// return to their scheduler. The loop registers and hardware stack
