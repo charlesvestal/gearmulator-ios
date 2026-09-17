@@ -2039,3 +2039,66 @@ interpreter, all gates OFF:   3380 bytes, mixerPC 9da   (unchanged)
 JIT:                         26894 / 22090  PASSES
 dsp56kTestRunner:             exit 0
 ```
+
+## Session 3, part 27 — a real metric at last, and what it says
+
+`MD_UCSTREAM=1` + the first-mismatch diff is the first metric in this whole
+investigation that is *causally* meaningful: the ColdFire's only inputs are
+these events, so the first index where two engines' streams differ by CONTENT
+is the root divergence by construction. Use this, not per-tick counters.
+
+```
+configuration                                   first mismatch
+baseline                                                  1552
+MD_DRAIN_MINSTEP=1 (+clamp off)                           2149
+  + MD_TIMED_HOSTRX + MD_LIVE_UCCYCLE                     2149
+  + MD_HOST_BACKLOG                                       2149
+  + MD_IRQ_BLOCK_PHASE                                    2149
+```
+
+**MINSTEP is the only change that moves it**, and with it the two streams are
+byte-identical through index 2148 — every delivered word, in order, at the same
+UC cycle. Nothing else helps at all.
+
+### What the stream says about the residual
+
+The producer answers the UC's poll with a status value. Both engines walk the
+same sequence; the interpreter is simply LATE to each transition:
+
+```
+delivered values   JIT: 732x 0, 14x 1, 6x 2, 2x 3, 2x 0x65
+                   INT: 178x 0, 15x 1, 8x 2, 5x 3,  never 0x65
+```
+
+At index 2149 the JIT's producer reports `1` (its first non-zero, a state
+change) while the interpreter's is still reporting `0`. The interpreter DOES
+reach 1, 2 and 3 later, so nothing is blocked — it never reaches `0x65`, the
+state the boot actually needs, before the machine falls over downstream.
+
+So the residual is not a lost event, a wrong flag, or a mis-executed
+instruction. It is the producer arriving late at a firmware state transition.
+
+### Fixes tried this part, all NOT effective (left in, default off)
+
+- `MD_TIMED_HOSTRX=1` — port MM's timed publication to MD. Moves host commands
+  474 -> 642 and words 59 -> 123 and keeps both DSPs on healthy PCs, but
+  DEADLOCKS at tick 28 and does not move the first mismatch.
+- `MD_LIVE_UCCYCLE=1` — `hostCurrentCycle()` was `m_schedUcCyclesDone`, which
+  only advances at QUANTUM boundaries, so during a UC poll host time looks
+  frozen and any deadline keyed to it is unreachable. Using the UC's live
+  per-instruction counter fixes that deadlock (runs to tick 60) but the result
+  is worse (vec12 462) and the mismatch does not move. **The stale-quantum-clock
+  observation is worth keeping regardless: it is a real modelling defect.**
+- `MD_IRQ_BLOCK_PHASE=1` — dispatch interrupts/peripherals only at control-flow
+  boundaries, as the JIT does, instead of before every instruction. Unit suite
+  still clean. No movement.
+
+### Honest assessment
+
+Twenty-seven parts, ~15 candidate causes excluded with controls, four real
+defects fixed, and the boot metric is where it started. The evidence is now
+strong and consistent: **no individual mechanism in this emulator is wrong.**
+mdLib's MCU<->DSP transport is budget-driven (advance N cycles and hope) where
+every working synth in this tree is condition-driven (wait until the fact is
+true), and it was hand-tuned against JIT timing. Making MD boot interpreted
+means rewriting that rendezvous, not finding another bug.
