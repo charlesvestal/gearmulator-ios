@@ -1,5 +1,62 @@
 # MD/MM interpreter — START HERE
 
+> ## STATUS: STOPPED 2026-09-17. Read this box before picking the work up again.
+>
+> The goal was "make MD boot interpreted, to prove iPad viability". Work was
+> stopped deliberately, not abandoned mid-debug. The reason is not MD boot --
+> real progress was made there -- it is that the SUCCESS CASE was measured and
+> is not good enough.
+>
+> **The throughput arithmetic, measured on an M1 Mac mini (Macmini9,1):**
+>
+> ```
+> mdBench MM, 10s audio          JIT realtime = 1.172x
+> sustained instr/s              JIT 59.3M    interpreter 28.2M   (48% of JIT)
+> => interpreter                 ~0.56x realtime on M1
+> => scaled to M4 iPad (~1.6x M1 single-core, this is single-threaded)
+>                                ~0.9x realtime   <- below realtime, no margin
+> ```
+>
+> The JIT itself is only 1.172x on M1 (~1.9x on M4), and that is an unreachable
+> ceiling because iOS will not JIT. For a usable ~1.5x margin the interpreter
+> must go from 48% to 80% of JIT speed -- a 1.7x speedup on a cycle-accurate
+> DSP56300 interpreter that nobody has ever profiled.
+>
+> **Three independent blockers, each open-ended:**
+> 1. MD does not boot interpreted (4 sessions).
+> 2. MM halts after ~12 SECONDS of ordinary audio: "INVALID PC ff0000" at
+>    605,667,784 instructions in mdBench, not only in mmBootFirmwareTest. The
+>    section at the end of this file scopes this to a late state-restore test and
+>    concludes "MM's problem is THROUGHPUT, not boot". That is too generous --
+>    MM interpreted does not survive twelve seconds of rendering.
+> 3. The throughput ceiling above.
+>
+> This is greenfield, not repair: upstream never supported running MD/MM under
+> the interpreter, so there is no working baseline and no regression. A "pristine
+> upstream" control is NOT meaningful here -- that path never worked.
+>
+> **What would change the decision.** The JIT is only 2.1x the interpreter, which
+> is unusually narrow (5-20x is typical). That hints the shared peripheral /
+> scheduler code, not instruction dispatch, dominates. If true, the 1.7x is
+> ordinary profiling work that speeds up BOTH engines. One clean profile of a
+> configuration that is actually running would settle it. That profile was
+> attempted and failed -- the DSP had already halted, and 13,716 of 13,727
+> samples were in DSP::onInvalidPC -> sleep_for.
+>
+> **Worth salvaging regardless of this project:**
+> - The interpreter PC guard (already in tree, not gated). execOp indexed
+>   m_opcodeCache with an unchecked PC and CALLED the result; the JIT had guarded
+>   this for years. It is what turned the MM failure above into a diagnosable
+>   halt with registers instead of a SIGSEGV. Independently shippable.
+> - DSP::exec() granularity: a dead-code guard makes it 1 instruction OUTSIDE a
+>   hardware loop and up to 32 INSIDE one -- backwards, and the comment claims
+>   the opposite. Upstream engine bug. See the 2026-09-17 corrections below for
+>   the measurement (12,990x post-condition overshoot).
+> - DSP::onInvalidPC sleeps 1ms and returns, so a halted DSP makes the whole
+>   machine crawl forever instead of failing. Deliberate, and reasonable for
+>   interactive debugging, but in a headless bench or a shipped app it is a
+>   silent hang rather than a fault. Worth a context flag.
+
 Read this file, not `MD_INTERPRETER_HANDOFF.md`. That one is a 2,100-line
 chronological evidence archive from three sessions; consult it only when you
 need the raw measurement behind a claim here. This file is the briefing.
