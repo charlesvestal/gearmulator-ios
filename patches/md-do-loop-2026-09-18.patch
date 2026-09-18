@@ -1,0 +1,175 @@
+diff --git a/source/dsp56kEmu/dsp.cpp b/source/dsp56kEmu/dsp.cpp
+--- a/source/dsp56kEmu/dsp.cpp
++++ b/source/dsp56kEmu/dsp.cpp
+@@ -1422,6 +1422,20 @@ namespace dsp56k
+ 	//
+ 	dsp56k::TWord DSP::memRead( EMemArea _area, TWord _offset ) const
+ 	{
++#ifndef NDEBUG
++		// Diagnose EA reads that bypass peripheral routing before AAR translation
++		// can change the address. Opt-in and bounded; preserve the existing read.
++		static const bool tracePeripheralReads = std::getenv("MD_XIOREAD") != nullptr;
++		if(tracePeripheralReads && _area != MemArea_P && isPeripheralAddress(_offset))
++		{
++			static unsigned reports = 0;
++			if(reports++ < 24)
++				std::fprintf(stderr, "MD_XIOREAD dsp=%p area=%u offset=%06x pc=%06x cycles=%llu\n",
++					static_cast<const void*>(this), unsigned(_area), _offset, pcCurrentInstruction,
++					static_cast<unsigned long long>(getCycles()));
++		}
++#endif
++
+ 		// app may access the instruction cache on the DSP 56362? not sure about this, not clear for me in the docs
+ 
+ 	// 	if( _area == MemArea_P && sr_test(SR_CE) )
+diff --git a/source/dsp56kEmu/dsp.h b/source/dsp56kEmu/dsp.h
+--- a/source/dsp56kEmu/dsp.h
++++ b/source/dsp56kEmu/dsp.h
+@@ -491,13 +491,15 @@ namespace dsp56k
+ 			// return to their scheduler. The loop registers and hardware stack
+ 			// retain the state needed to resume at the next call.
+ 			// Loop-back applies only when the instruction just executed really was
+-			// the loop's last one. Testing the destination alone (pc == la+1) also
++			// the loop's last one. LA names the final instruction WORD, so a
++			// two-word instruction starts at LA-1. Testing the destination alone
++			// (pc == la+1) also
+ 			// matches an interrupt handler returning to that address from
+ 			// somewhere else, which adds a spurious iteration -- measured as ~20
+ 			// extra words written by the mixer's copy loop versus the JIT.
+ 			if(m_jit.getConfig().maxDoIterations
+ 				&& sr_test_noCache(SR_LF)
+-				&& pcCurrentInstruction == reg.la.var
++				&& pcCurrentInstruction + m_currentOpLen == reg.la.var + 1
+ 				&& reg.pc.var == reg.la.var + 1)
+ 			{
+ 				if(reg.lc.var <= 1)
+diff --git a/source/dsp56kEmu/interpreterunittests.cpp b/source/dsp56kEmu/interpreterunittests.cpp
+--- a/source/dsp56kEmu/interpreterunittests.cpp
++++ b/source/dsp56kEmu/interpreterunittests.cpp
+@@ -15,10 +15,92 @@ namespace dsp56k
+ 		testCCCC();
+ 		testSubr();
+ 		testCycleAccounting();
++		testBoundedDoTwoWordEnd();
+ 		
+ 		runAllTests();
+ 	}
+ 
++	void InterpreterUnitTests::testBoundedDoTwoWordEnd()
++	{
++		const auto savedConfig = dsp.getJit().getConfig();
++		for(const auto slice : {1u, 2u, 4u, 8u, 16u})
++		{
++			dsp.resetHW();
++			auto config = savedConfig;
++			config.maxDoIterations = slice;
++			dsp.getJit().setConfig(config);
++			auto pc = emitToMemory("jsr $200", 0x100);
++			const auto returnPC = pc;
++			emitToMemory("nop", returnPC);
++			pc = emitToMemory("do #$3,>$205", 0x200);
++			pc = emitToMemory("nop", pc);
++			// The extension word, not the opcode word, is at LA ($204).
++			pc = emitToMemory("move #>$123456,x0", pc);
++			verify(pc == 0x205);
++			emitToMemory("rts", pc);
++			dsp.setPC(0x100);
++			dsp.execInterpreter(); // JSR
++			const auto callSP = dsp.readRegs().sp.var;
++			dsp.execInterpreter(); // DO
++			for(unsigned iteration = 0; iteration < 3; ++iteration)
++			{
++				dsp.execInterpreter(); // NOP
++				dsp.execInterpreter(); // two-word MOVE
++				verify(dsp.getPC().toWord() == (iteration < 2 ? 0x202 : 0x205));
++			}
++			verify(dsp.getPC().toWord() == 0x205);
++			verify(dsp.readRegs().sp.var == callSP);
++			verify(!dsp.sr_test(SR_LF));
++			dsp.execInterpreter();
++			verify(dsp.getPC().toWord() == returnPC);
++
++			// Nested loops must pop their own two stack entries. Exercise the
++			// scheduler-facing exec() as well as the instruction-step path above.
++			dsp.resetHW();
++			emitToMemory("jsr $200", 0x100);
++			pc = emitToMemory("do #$2,>$209", 0x200);
++			pc = emitToMemory("do #$3,>$207", pc);
++			pc = emitToMemory("nop", pc);
++			pc = emitToMemory("move #>$123456,x0", pc);
++			verify(pc == 0x207);
++			pc = emitToMemory("move #>$654321,y0", pc);
++			verify(pc == 0x209);
++			emitToMemory("rts", pc);
++			dsp.setPC(0x100);
++			dsp.execInterpreter();
++			dsp.execInterpreter();
++			const auto bodyInstructions = dsp.getInstructionCounter();
++			for(unsigned calls = 0; calls < 32 && dsp.getPC().toWord() != 0x209; ++calls)
++				dsp.exec();
++			verify(dsp.getPC().toWord() == 0x209);
++			verify(dsp.getInstructionCounter() - bodyInstructions == 16);
++			verify(dsp.readRegs().sp.var == callSP);
++			verify(!dsp.sr_test(SR_LF));
++			dsp.execInterpreter();
++			verify(dsp.getPC().toWord() == returnPC);
++
++			// Returning to LA+1 from elsewhere is not execution of the loop's
++			// final instruction. Preserve the original epilogue's RTI guard.
++			dsp.resetHW();
++			emitToMemory("do #$3,>$205", 0x200);
++			emitToMemory("rti", 0x300);
++			dsp.setPC(0x200);
++			dsp.execInterpreter();
++			const auto loopSP = dsp.readRegs().sp.var;
++			dsp.setPC(0x205);
++			dsp.pushPCSR();
++			dsp.sr_clear(SR_LF);
++			dsp.setPC(0x300);
++			dsp.execInterpreter();
++			verify(dsp.getPC().toWord() == 0x205);
++			verify(dsp.readRegs().sp.var == loopSP);
++			verify(dsp.readRegs().lc.var == 3);
++			verify(dsp.sr_test(SR_LF));
++		}
++		dsp.getJit().setConfig(savedConfig);
++		dsp.resetHW();
++	}
++
+ 	void InterpreterUnitTests::testOpcodeCacheAllocation()
+ 	{
+ 		if constexpr(g_useJIT)
+diff --git a/source/dsp56kEmu/interpreterunittests.h b/source/dsp56kEmu/interpreterunittests.h
+--- a/source/dsp56kEmu/interpreterunittests.h
++++ b/source/dsp56kEmu/interpreterunittests.h
+@@ -16,6 +16,7 @@ namespace dsp56k
+ 		void testBootOverwriteInvalidation();
+ 		void testBootOutOfRangeInvalidation();
+ 		void testCycleAccounting();
++		void testBoundedDoTwoWordEnd();
+ 
+ 		void runTest(const std::function<void()>& _build, const std::function<void()>& _verify) override;
+ 		void emit(TWord _opA, TWord _opB = 0, TWord _pc = 0) override;
+diff --git a/source/dsp56kEmu/jittrampoline.cpp b/source/dsp56kEmu/jittrampoline.cpp
+--- a/source/dsp56kEmu/jittrampoline.cpp
++++ b/source/dsp56kEmu/jittrampoline.cpp
+@@ -125,7 +125,8 @@ namespace dsp56k
+ 		assert(ptrDspRegs.offset());
+ 
+ #ifdef HAVE_ARM64
+-		m_asm.add(regDspPtr, g_ptrDSP, ptrDspRegs.offset());
++		// Debug trace buffers can put regs beyond the AArch64 ADD immediate range.
++		m_asm.lea_(regDspPtr, g_ptrDSP, &m_dsp.regs(), &m_dsp);
+ #else
+ 		m_asm.lea(regDspPtr, ptrDspRegs);
+ #endif
+@@ -308,7 +309,8 @@ namespace dsp56k
+ 		assert(ptrDspRegs.offset());
+ 
+ #ifdef HAVE_ARM64
+-		m_asm.add(regDspPtr, g_ptrDSP, ptrDspRegs.offset());
++		// Debug trace buffers can put regs beyond the AArch64 ADD immediate range.
++		m_asm.lea_(regDspPtr, g_ptrDSP, &m_dsp.regs(), &m_dsp);
+ #else
+ 		m_asm.lea(regDspPtr, ptrDspRegs);
+ #endif
