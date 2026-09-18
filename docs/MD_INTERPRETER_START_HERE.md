@@ -1,5 +1,43 @@
 # MD/MM interpreter — START HERE
 
+> ## SESSION 2026-09-18: DO-loop end-word bug fixed; targeted MM and MD runs pass
+>
+> **Read this before the older boxes.** Changes are applied, uncommitted, in
+> `../md-interp-work/mdmm/source/dsp56300`; nothing pushed. Existing edits preserved.
+>
+> The bounded interpreter epilogue required `pcCurrentInstruction == LA`.
+> **LA names the last instruction word.** A two-word final instruction starts
+> at LA-1, so the epilogue skipped loop-back and frame removal. RTS could then
+> pop loop state instead of its subroutine return address. The fix uses
+> `pcCurrentInstruction + m_currentOpLen == LA + 1`, retaining the next-PC check
+> to exclude an RTI from elsewhere into LA+1. A small reproducer failed before
+> the fix; the complete Debug suite now passes, including nested loops, slices
+> 1/2/4/8/16 and the RTI exclusion.
+>
+> **Firmware validation, Debug interpreter, no timing overrides:**
+>
+> - MM: eight-second boot plus ten-second render completes, exit 0, peak 0.4128
+>   (recorded JIT control 0.4134). No INVALID PC halt.
+> - MD: `trigPressFirmwareTest md --trig 1 --hold` completes, exit 0. Default
+>   out-of-record Trigger1 press/hold/release; peaks 0.204363/0.223144; final
+>   mixer count 2,229,951,961 exceeds the old failure at 2,102,488,972.
+>   No illegal instruction. This selected one key, not all 16.
+> - `MD_XIOREAD=1` during MD reports no plain-memory peripheral reads. The
+>   diagnostic runs before AAR translation. Rn+displacement routing remains
+>   an unexercised gap, not implicated by this run.
+>
+> Also fixed the ARM64 Debug startup abort: both trampoline generators used
+> an ADD immediate for the DSP-register offset, which grew to 17944 with Debug
+> history buffers. They now use the existing large-offset-aware `lea_` helper.
+> Forced-interpreter DSP construction still generates these trampolines.
+>
+> All nonzero DO slices shared the defective epilogue; failing at every such
+> setting did not rule it out. Full-machine slice invariance and on-device
+> validation have not been established here. Throughput was not changed.
+>
+> [Full evidence and commands](MD_DO_LOOP_INVESTIGATION.md) ·
+> [Isolated session patch](../patches/md-do-loop-2026-09-18.patch)
+
 > ## SESSION 2026-09-17b: both remaining bugs reproduced headlessly, same shape
 >
 > Read this box AND the SOLVED box below it. Everything after the SOLVED box
