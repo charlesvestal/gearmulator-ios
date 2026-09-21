@@ -26,6 +26,7 @@ a permanent divergence.
 | Xenia | Waldorf Microwave II/XT |
 | NodalRed2x | Clavia Nord Lead/Rack 2x |
 | JE-8086 | Roland JP-8000 |
+| 88emuPlayer | Roland SC-88 (Sound Canvas) |
 
 ## Compatibility
 
@@ -42,9 +43,15 @@ DSPs a synth emulates**, not how fast the chip is.
 | Xenia (3 DSPs) | works | plays, **breaks up** |
 | NodalRed2x (2 DSPs) | works | **no sound at all** |
 | JE-8086 (H8S + ESP) | works | plays |
+| 88emuPlayer (H8S + PCM ASICs) | runs | not measured |
 
-Measured 2026-09-15, every row tested rather than inferred. On the phone most of
-these PLAY but break up under load; they are usable rather than clean, and
+The SC-88 row is the exception: it is newer, and all that has been confirmed is
+that it launches and runs on an iPad Pro M5 — no throughput number and no phone
+test. Its firmware takes upwards of 8 seconds to boot before it makes any sound,
+which is the hardware's behaviour and not a hang.
+
+Every other row measured 2026-09-15, tested rather than inferred. On the phone
+most of these PLAY but break up under load; they are usable rather than clean, and
 underclocking is what buys the margin back. DSP count is a rough guide and no
 more -- Xenia emulates three and still makes sound, so what matters is the total
 emulated work a synth demands, not how it is divided.
@@ -74,6 +81,7 @@ and for what an M1/M2 iPad is expected to do.
 ```bash
 DEVELOPMENT_TEAM=XXXXXXXXXX scripts/build_ios_dsp56k.sh <synth> device
 DEVELOPMENT_TEAM=XXXXXXXXXX scripts/build_ios.sh device          # JE-8086
+DEVELOPMENT_TEAM=XXXXXXXXXX scripts/build_ios_sc88.sh device     # SC-88
 ```
 
 `<synth>` is one of `osirus ostirus vavra xenia nodalred2x`. Omit `device` for
@@ -93,12 +101,19 @@ Nothing here ships them. Drop the files a synth needs into
 .appex and the standalone .appex, which are then re-signed — adding files to a
 signed bundle invalidates its signature, so the re-sign is inside-out.
 
+The SC-88 wants a complete set — one control ROM plus four 2 MB wave images in
+`roms-ios/sc88/`. Its loader is content-addressed (hashes in
+`88lib/romRegistry.h`), so filenames do not matter but an incomplete or
+unrecognised set boots silent.
+
 ## The JIT is compiled out
 
 iOS will not map an executable page to a non-entitled process, so asmjit cannot
 be used at all; every DSP56300 instruction runs through the interpreter
 (`-DDSP56K_FORCE_INTERPRETER=1`). This is not a tuning choice — a JIT build fails
-at runtime. `pgo/` holds profiles that buy back part of the cost; see
+at runtime. The same applies to the SC-88's XP custom-chip DSP, which runs
+naively there. `pgo/` holds profiles (for the DSP56300 interpreter and the ESP;
+the SC-88 has none — it is neither) that buy back part of the cost; see
 `pgo/README.md`, and `docs/IOS_AUV3.md` for measured per-synth throughput and
 which devices these actually run on.
 
