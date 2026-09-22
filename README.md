@@ -72,6 +72,16 @@ Virus from 0.96x to 1.11x at 4 voices. It lives in the DSP/Audio settings page,
 reached by long-pressing the panel (touch has no right click) and enabling
 advanced options.
 
+Freezing a track works, tested in Cubasis 3 on the M5. It did not until
+2026-09-22: a freeze is an offline render, the host asks for audio far faster
+than real time, and everything these synths do to protect a realtime thread --
+dropping a backlog, filling an underrun with silence -- is wrong when there is no
+deadline to miss. Nothing had ever read `isNonRealtime()`, though JUCE passes it
+in. Unfreezing then failed to reload the AUv3 for an unrelated reason: the host
+workgroup joiner was process-wide, so an instance going away left the others
+calling into freed memory, and iOS runs every instance of an audio unit in one
+extension process.
+
 Earlier notes here said no iPhone worked at all. That predated a fix to the
 realtime thread policy and is wrong; see `docs/IOS_AUV3.md` for the measurements
 and for what an M1/M2 iPad is expected to do.
